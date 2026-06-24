@@ -228,6 +228,97 @@ app.post('/api/repos/:repo/fetch', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── File browser / editor ────────────────────────────────────────────────────
+
+// Resolve and validate that a repo-relative path stays inside the repo
+function guardPath(repoName, filePath) {
+  const full = path.resolve(path.join(repoPath(repoName), filePath));
+  const base = path.resolve(repoPath(repoName));
+  if (full !== base && !full.startsWith(base + path.sep)) throw new Error('Access denied');
+  return full;
+}
+
+// Recursively build a file tree, skipping .git
+async function buildTree(dir, relBase, depth = 0) {
+  if (depth > 8) return [];
+  let entries;
+  try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return []; }
+  entries.sort((a, b) => {
+    if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+  const nodes = [];
+  for (const e of entries) {
+    if (e.name === '.git') continue;
+    const relPath = relBase ? `${relBase}/${e.name}` : e.name;
+    if (e.isDirectory()) {
+      nodes.push({ type: 'dir', name: e.name, path: relPath,
+        children: await buildTree(path.join(dir, e.name), relPath, depth + 1) });
+    } else {
+      let size = 0;
+      try { size = (await fs.stat(path.join(dir, e.name))).size; } catch {}
+      nodes.push({ type: 'file', name: e.name, path: relPath, size });
+    }
+  }
+  return nodes;
+}
+
+// Get full file tree
+app.get('/api/repos/:repo/tree', async (req, res) => {
+  try {
+    const repo = safeRepoName(req.params.repo);
+    res.json({ tree: await buildTree(repoPath(repo), '') });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Read a single file (text files up to 1.5 MB)
+app.get('/api/repos/:repo/file', async (req, res) => {
+  if (!req.query.path) return res.status(400).json({ error: 'path is required' });
+  try {
+    const repo = safeRepoName(req.params.repo);
+    const full = guardPath(repo, req.query.path);
+    const stat = await fs.stat(full);
+    if (stat.size > 1_500_000) return res.json({ tooLarge: true, size: stat.size });
+    const buf = await fs.readFile(full);
+    const binary = buf.indexOf(0) !== -1;
+    res.json({ content: binary ? null : buf.toString('utf8'), binary, size: stat.size });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Save a text file
+app.put('/api/repos/:repo/file', async (req, res) => {
+  const { path: filePath, content } = req.body;
+  if (!filePath) return res.status(400).json({ error: 'path is required' });
+  if (content == null) return res.status(400).json({ error: 'content is required' });
+  try {
+    const repo = safeRepoName(req.params.repo);
+    const full = guardPath(repo, filePath);
+    await fs.mkdir(path.dirname(full), { recursive: true });
+    await fs.writeFile(full, content, 'utf8');
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Upload files as base64-encoded JSON — no extra dependencies needed
+app.post('/api/repos/:repo/upload', async (req, res) => {
+  const { files, destDir = '' } = req.body;
+  if (!Array.isArray(files) || !files.length) return res.status(400).json({ error: 'files array is required' });
+  const repo = safeRepoName(req.params.repo);
+  const results = [];
+  for (const f of files) {
+    const dest = destDir ? `${destDir}/${f.name}` : f.name;
+    try {
+      const full = guardPath(repo, dest);
+      await fs.mkdir(path.dirname(full), { recursive: true });
+      await fs.writeFile(full, Buffer.from(f.data, 'base64'));
+      results.push({ name: f.name, path: dest, success: true });
+    } catch (err) {
+      results.push({ name: f.name, error: err.message });
+    }
+  }
+  res.json({ results });
+});
+
 // ── WebSocket PTY terminal ────────────────────────────────────────────────────
 
 wss.on('connection', (ws, req) => {

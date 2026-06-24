@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>WebGit</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" />
 <style>
 :root {
   --bg0: #1e1e1e; --bg1: #252526; --bg2: #2d2d30; --bg3: #3c3c3c;
@@ -155,8 +157,24 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
 .term-resizer{height:5px;background:var(--border);cursor:ns-resize}
 .term-resizer:hover{background:var(--accent)}
 
-/* ── util ── */
-.hidden{display:none!important}
+/* ── file browser / editor ── */
+#panel-files{padding:0;overflow:hidden;display:flex}
+.ft-pane{width:220px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.ft-toolbar{display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2)}
+.ft-item{display:flex;align-items:center;gap:5px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--fg1);white-space:nowrap;overflow:hidden;border-left:2px solid transparent;user-select:none}
+.ft-item:hover{background:var(--bg2);color:var(--fg0)}
+.ft-item.active{background:var(--blue-dim);color:var(--blue);border-left-color:var(--accent)}
+.ft-name{overflow:hidden;text-overflow:ellipsis;font-family:var(--font-mono);font-size:11px}
+.ft-dir>.ft-name{color:var(--fg0)}
+.editor-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.editor-bar{display:flex;align-items:center;gap:7px;padding:5px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;font-size:12px;min-width:0}
+.editor-filename{font-family:var(--font-mono);font-size:11px;color:var(--fg0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-dirty{color:var(--orange);font-size:11px;flex-shrink:0}
+.editor-placeholder{flex:1;display:flex;align-items:center;justify-content:center;color:var(--fg2);font-size:13px;flex-direction:column;gap:8px}
+#cm-wrap{flex:1;overflow:hidden;position:relative}
+#cm-wrap .CodeMirror{height:100%;font-size:13px;font-family:'Cascadia Code','Fira Code',Consolas,monospace;line-height:1.5}
+#cm-wrap .CodeMirror-scroll{overflow:auto!important}
+
 .mono{font-family:var(--font-mono)}
 .muted{color:var(--fg1)}
 </style>
@@ -220,6 +238,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         <div class="sb-item" id="nav-push" onclick="showPanel('push')">
           <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
           Push / Pull
+        </div>
+        <div class="sb-item" id="nav-files" onclick="showPanel('files')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          Files
         </div>
       </div>
       <div class="sb-section" id="sb-repos-section">
@@ -342,7 +364,44 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
     </div>
   </div>
 
-  <!-- ── terminal ─────────────────────────────────────────────────────────── -->
+      <!-- files / editor -->
+      <div class="panel hidden" id="panel-files">
+        <!-- File tree -->
+        <div class="ft-pane">
+          <div class="ft-toolbar">
+            <span style="font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.08em;flex:1">Explorer</span>
+            <button class="btn sm" title="New file" onclick="promptNewFile()" style="padding:1px 6px">+</button>
+            <button class="btn sm" title="Refresh tree" onclick="loadFileTree()" style="padding:1px 6px">
+              <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            </button>
+          </div>
+          <div id="ft-pane-body" style="overflow-y:auto;flex:1">
+            <div class="empty" style="padding:16px 10px">Select a repository first</div>
+          </div>
+        </div>
+        <!-- Editor -->
+        <div class="editor-pane">
+          <div class="editor-placeholder" id="editor-placeholder">
+            <svg width="36" height="36" fill="currentColor" viewBox="0 0 24 24" opacity=".3"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>
+            <span>Select a file to view or edit</span>
+          </div>
+          <div class="editor-bar hidden" id="editor-bar">
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;opacity:.6"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>
+            <span class="editor-filename" id="editor-filename"></span>
+            <span class="editor-dirty hidden" id="editor-dirty">● unsaved</span>
+            <label class="btn sm" title="Upload files here" style="cursor:pointer">
+              <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+              Upload
+              <input type="file" id="upload-input" multiple style="display:none" onchange="handleUpload(this)" />
+            </label>
+            <button class="btn sm primary" id="editor-save-btn" onclick="saveFile()">Save</button>
+          </div>
+          <div id="cm-wrap" class="hidden"></div>
+          <div id="editor-msg" class="hidden" style="padding:20px;color:var(--fg1);font-size:12px;font-style:italic"></div>
+        </div>
+      </div>
+
+
   <div id="terminal-wrap" style="height:280px">
     <div class="term-resizer" id="term-resizer"></div>
     <div id="term-bar" onclick="toggleTerminal()">
@@ -358,6 +417,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
 
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
 // State
@@ -391,8 +459,8 @@ const DEL  = url => api('DELETE', url);
 // ─────────────────────────────────────────────────────────────────────────────
 // Panel routing
 // ─────────────────────────────────────────────────────────────────────────────
-const PANELS = ['welcome','clone','changes','diff','commit','history','branches','push'];
-const NAV_MAP = { changes:'nav-changes', diff:'nav-diff', commit:'nav-commit', history:'nav-history', branches:'nav-branches', push:'nav-push' };
+const PANELS = ['welcome','clone','changes','diff','commit','history','branches','push','files'];
+const NAV_MAP = { changes:'nav-changes', diff:'nav-diff', commit:'nav-commit', history:'nav-history', branches:'nav-branches', push:'nav-push', files:'nav-files' };
 const TAB_PANELS = ['changes','diff']; // panels that show tab-row
 
 function showPanel(id) {
@@ -406,6 +474,7 @@ function showPanel(id) {
   if (id === 'branches') loadBranches();
   if (id === 'push')    loadPushStatus();
   if (id === 'clone')   loadExistingRepos();
+  if (id === 'files')   loadFileTree();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -974,6 +1043,247 @@ function showAlert(containerId, type, message) {
   if (!el) return;
   el.innerHTML = `<div class="alert ${type}">${icons[type]||''} ${escHtml(message)}</div>`;
   setTimeout(() => { el.innerHTML = ''; }, 6000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File browser / editor
+// ─────────────────────────────────────────────────────────────────────────────
+let cmEditor   = null;
+let editorFile = null;
+let editorDirty = false;
+
+// Map common extensions → CodeMirror mode
+const EXT_MODE = {
+  js:'javascript', jsx:'javascript', mjs:'javascript', cjs:'javascript',
+  ts:'javascript', tsx:'javascript',
+  json: { name:'javascript', json:true },
+  html:'htmlmixed', htm:'htmlmixed',
+  xml:'xml', svg:'xml',
+  css:'css', scss:'css', less:'css',
+  py:'python', pyw:'python',
+  md:'markdown', markdown:'markdown',
+  sh:'shell', bash:'shell', zsh:'shell',
+  yaml:'yaml', yml:'yaml',
+};
+
+function modeFor(filename) {
+  if (!filename) return 'text/plain';
+  const lower = filename.toLowerCase();
+  if (lower === 'dockerfile' || lower.startsWith('dockerfile.')) return 'shell';
+  const ext = lower.split('.').pop();
+  return EXT_MODE[ext] || 'text/plain';
+}
+
+// Language-tinted file icon
+function fileIcon(name, size = 13) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  const tint = {
+    js:'#f7df1e', jsx:'#61dafb', ts:'#3178c6', tsx:'#61dafb',
+    html:'#e34c26', css:'#563d7c', scss:'#c76494',
+    py:'#3572a5', rb:'#cc342d',
+    md:'#4a90d9', json:'#cbcb41',
+    sh:'#89e051', bash:'#89e051', yaml:'#cb171e', yml:'#cb171e',
+    png:'#a074c4', jpg:'#a074c4', jpeg:'#a074c4', gif:'#a074c4',
+    svg:'#ffb13b', pdf:'#e74c3c', txt:'#aaaaaa',
+  }[ext] || '#858585';
+  return `<svg width="${size}" height="${size}" fill="${tint}" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>`;
+}
+
+function dirIcon(size = 13) {
+  return `<svg width="${size}" height="${size}" fill="var(--yellow)" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+}
+
+function chevron() {
+  return `<svg class="ft-chevron" width="10" height="10" fill="currentColor" viewBox="0 0 24 24"
+    style="flex-shrink:0;transition:transform .15s;margin-right:1px"><path d="M10 17l5-5-5-5v10z"/></svg>`;
+}
+
+function renderTree(nodes, depth = 0) {
+  if (!nodes || !nodes.length) return '';
+  return nodes.map(n => {
+    const indent = depth * 14 + 8;
+    if (n.type === 'dir') {
+      const safeId = 'ftd_' + n.path.replace(/[^a-zA-Z0-9]/g, '_');
+      return `
+        <div class="ft-item ft-dir" style="padding-left:${indent}px"
+             onclick="toggleFtDir('${safeId}',this)">
+          ${chevron()}${dirIcon()}
+          <span class="ft-name">${escHtml(n.name)}</span>
+        </div>
+        <div id="${safeId}" style="display:none">${renderTree(n.children, depth + 1)}</div>`;
+    }
+    return `<div class="ft-item" style="padding-left:${indent + 13}px"
+               onclick="openFile('${escHtml(n.path).replace(/'/g, '&#39;')}')"
+               data-ft-path="${escHtml(n.path)}" title="${escHtml(n.path)}">
+              ${fileIcon(n.name)}
+              <span class="ft-name">${escHtml(n.name)}</span>
+            </div>`;
+  }).join('');
+}
+
+function toggleFtDir(id, el) {
+  const div = document.getElementById(id);
+  if (!div) return;
+  const open = div.style.display !== 'none';
+  div.style.display = open ? 'none' : '';
+  const ch = el.querySelector('.ft-chevron');
+  if (ch) ch.style.transform = open ? '' : 'rotate(90deg)';
+}
+
+async function loadFileTree() {
+  if (!state.repo) return;
+  const body = document.getElementById('ft-pane-body');
+  body.innerHTML = '<div class="empty" style="padding:10px"><span class="spinner"></span></div>';
+  try {
+    const { tree } = await GET(`/api/repos/${state.repo}/tree`);
+    body.innerHTML = tree.length ? renderTree(tree) : '<div class="empty">Empty repository</div>';
+  } catch (e) {
+    body.innerHTML = `<div class="empty" style="color:var(--red)">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function openFile(filePath) {
+  if (!state.repo) return;
+  if (editorDirty && !confirm('Discard unsaved changes?')) return;
+
+  // Highlight in tree
+  document.querySelectorAll('[data-ft-path]').forEach(el =>
+    el.classList.toggle('active', el.dataset.ftPath === filePath));
+
+  const bar  = document.getElementById('editor-bar');
+  const wrap = document.getElementById('cm-wrap');
+  const ph   = document.getElementById('editor-placeholder');
+  const msg  = document.getElementById('editor-msg');
+
+  ph.classList.add('hidden');
+  msg.classList.add('hidden');
+  wrap.classList.add('hidden');
+  bar.classList.remove('hidden');
+  document.getElementById('editor-filename').textContent = filePath;
+  document.getElementById('editor-dirty').classList.add('hidden');
+
+  try {
+    const res = await GET(`/api/repos/${state.repo}/file?path=${encodeURIComponent(filePath)}`);
+    if (res.error) throw new Error(res.error);
+
+    if (res.binary || res.tooLarge) {
+      msg.textContent = res.tooLarge
+        ? `File too large to edit (${(res.size / 1024).toFixed(0)} KB)`
+        : 'Binary file — cannot be edited in the browser.';
+      msg.classList.remove('hidden');
+      editorFile = null;
+      return;
+    }
+
+    editorFile  = filePath;
+    editorDirty = false;
+    wrap.classList.remove('hidden');
+
+    if (!cmEditor) {
+      cmEditor = CodeMirror(wrap, {
+        theme: 'dracula',
+        lineNumbers: true,
+        lineWrapping: false,
+        tabSize: 2,
+        indentWithTabs: false,
+        autofocus: true,
+        extraKeys: { 'Ctrl-S': saveFile, 'Cmd-S': saveFile },
+      });
+      cmEditor.on('change', () => {
+        if (!editorFile) return;
+        editorDirty = true;
+        document.getElementById('editor-dirty').classList.remove('hidden');
+      });
+      new ResizeObserver(() => { try { cmEditor.refresh(); } catch {} }).observe(wrap);
+    }
+
+    cmEditor.setOption('mode', modeFor(filePath));
+    cmEditor.setValue(res.content ?? '');
+    cmEditor.clearHistory();
+    editorDirty = false;
+    document.getElementById('editor-dirty').classList.add('hidden');
+    setTimeout(() => cmEditor.refresh(), 20);
+
+  } catch (e) {
+    msg.textContent = 'Error loading file: ' + e.message;
+    msg.classList.remove('hidden');
+  }
+}
+
+async function saveFile() {
+  if (!state.repo || !editorFile || !cmEditor) return;
+  const btn = document.getElementById('editor-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    await api('PUT', `/api/repos/${state.repo}/file`, { path: editorFile, content: cmEditor.getValue() });
+    editorDirty = false;
+    document.getElementById('editor-dirty').classList.add('hidden');
+    btn.textContent = '✓ Saved';
+    setTimeout(() => { btn.textContent = 'Save'; btn.disabled = false; }, 1800);
+  } catch (e) {
+    btn.textContent = 'Save';
+    btn.disabled = false;
+    showAlert('', 'error', 'Save failed: ' + e.message); // fallback to alert
+    alert('Save failed: ' + e.message);
+  }
+}
+
+async function promptNewFile() {
+  if (!state.repo) return;
+  const name = prompt('New file path (relative to repo root):');
+  if (!name) return;
+  try {
+    await api('PUT', `/api/repos/${state.repo}/file`, { path: name, content: '' });
+    await loadFileTree();
+    openFile(name);
+    // Expand parent folders so the new file is visible
+    expandPathInTree(name);
+  } catch (e) { alert('Could not create file: ' + e.message); }
+}
+
+function expandPathInTree(filePath) {
+  const parts = filePath.split('/');
+  let built = '';
+  for (let i = 0; i < parts.length - 1; i++) {
+    built = built ? `${built}/${parts[i]}` : parts[i];
+    const id = 'ftd_' + built.replace(/[^a-zA-Z0-9]/g, '_');
+    const div = document.getElementById(id);
+    if (div && div.style.display === 'none') {
+      div.style.display = '';
+      // rotate the chevron for that dir
+      const dirEl = div.previousElementSibling;
+      const ch = dirEl?.querySelector('.ft-chevron');
+      if (ch) ch.style.transform = 'rotate(90deg)';
+    }
+  }
+}
+
+async function handleUpload(input) {
+  if (!state.repo || !input.files.length) return;
+  // Upload into the directory of the currently open file, or repo root
+  const destDir = editorFile && editorFile.includes('/')
+    ? editorFile.substring(0, editorFile.lastIndexOf('/'))
+    : '';
+
+  const fileArr = await Promise.all([...input.files].map(f => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res({ name: f.name, data: r.result.split(',')[1] });
+    r.onerror = () => rej(new Error('Read error'));
+    r.readAsDataURL(f);
+  })));
+
+  try {
+    const { results } = await POST(`/api/repos/${state.repo}/upload`, { files: fileArr, destDir });
+    const failed = results.filter(r => r.error);
+    if (failed.length) {
+      alert('Failed:\n' + failed.map(r => `${r.name}: ${r.error}`).join('\n'));
+    }
+    await loadFileTree();
+    const first = results.find(r => r.success);
+    if (first) { openFile(first.path); expandPathInTree(first.path); }
+  } catch (e) { alert('Upload failed: ' + e.message); }
+  input.value = '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
