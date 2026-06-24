@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WebGit</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+<style>
+:root {
+  --bg0: #1e1e1e; --bg1: #252526; --bg2: #2d2d30; --bg3: #3c3c3c;
+  --fg0: #cccccc; --fg1: #858585; --fg2: #555555;
+  --blue: #4fc1ff; --blue-dim: #264f78; --blue-btn: #0e639c;
+  --green: #4ec9b0; --green-dim: #1e3a2f;
+  --red: #f44747; --red-dim: #3a1e1e;
+  --yellow: #dcdcaa; --orange: #ce9178;
+  --purple: #c586c0;
+  --border: #404040;
+  --accent: #0078d4;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);font-family:var(--font-ui);font-size:13px}
+
+/* ── layout ── */
+#app{display:grid;grid-template-rows:40px 1fr auto;height:100vh}
+#header{display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0}
+#header .logo{font-weight:600;font-size:14px;color:var(--fg0);display:flex;align-items:center;gap:6px}
+#header .logo svg{opacity:.8}
+#body{display:grid;grid-template-columns:200px 1fr;overflow:hidden}
+#sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+#main{display:flex;flex-direction:column;overflow:hidden}
+#terminal-wrap{display:flex;flex-direction:column;border-top:1px solid var(--border);background:#000}
+#term-bar{display:flex;align-items:center;gap:8px;padding:4px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;cursor:pointer;user-select:none}
+#term-bar:hover{background:var(--bg3)}
+#xterm-container{overflow:hidden;padding:4px 8px;flex:1}
+
+/* ── header controls ── */
+.repo-select{background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px;cursor:pointer;max-width:200px}
+.repo-select:focus{outline:none;border-color:var(--accent)}
+.hbtn{background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.hbtn:hover{background:var(--bg3);border-color:var(--fg1)}
+.hbtn.primary{background:var(--blue-btn);border-color:var(--blue-btn);color:#fff}
+.hbtn.primary:hover{background:#1177bb}
+.hbtn svg{width:13px;height:13px;fill:currentColor;flex-shrink:0}
+.spacer{flex:1}
+.branch-badge{background:var(--blue-dim);color:var(--blue);border-radius:3px;padding:2px 8px;font-size:11px;font-family:var(--font-mono)}
+
+/* ── sidebar ── */
+.sb-section{padding:8px 0}
+.sb-label{font-size:10px;color:var(--fg2);padding:4px 14px 2px;text-transform:uppercase;letter-spacing:.08em}
+.sb-item{display:flex;align-items:center;gap:8px;padding:5px 14px;cursor:pointer;color:var(--fg1);border-left:2px solid transparent}
+.sb-item:hover{background:var(--bg2);color:var(--fg0)}
+.sb-item.active{background:var(--blue-dim);color:var(--blue);border-left:2px solid var(--accent)}
+.sb-item svg{width:14px;height:14px;fill:currentColor;flex-shrink:0}
+.sb-item .badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:10px;padding:0 6px;font-size:10px;min-width:16px;text-align:center}
+.sb-item .badge.green{background:#2d6a4f}
+.sb-item .badge.red{background:#6a2d2d}
+
+/* ── panels ── */
+.panel{flex:1;overflow-y:auto;padding:16px}
+.panel-header{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--fg0);display:flex;align-items:center;gap:8px}
+.panel-header svg{width:16px;height:16px;fill:currentColor;opacity:.7}
+
+/* ── buttons ── */
+.btn{background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:3px;padding:4px 10px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit}
+.btn:hover{background:var(--bg3)}
+.btn.sm{padding:2px 7px;font-size:11px}
+.btn.primary{background:var(--blue-btn);border-color:var(--blue-btn);color:#fff}
+.btn.primary:hover{background:#1177bb}
+.btn.danger{background:#6a1f1f;border-color:#8b2222;color:#f88}
+.btn.danger:hover{background:#8b2222}
+.btn svg{width:12px;height:12px;fill:currentColor}
+.btn-row{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+
+/* ── form elements ── */
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--fg1);margin-bottom:4px}
+.field input,.field textarea,.field select{width:100%;background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:3px;padding:6px 9px;font-size:12px;font-family:inherit}
+.field textarea{resize:vertical;min-height:70px;font-family:var(--font-ui)}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+.field input[type=password]{font-family:var(--font-mono);letter-spacing:.05em}
+
+/* ── file list ── */
+.file-list{list-style:none}
+.file-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:3px;cursor:default}
+.file-item:hover{background:var(--bg2)}
+.file-item.selected{background:var(--blue-dim)}
+.file-status{font-size:10px;font-weight:700;width:16px;text-align:center;flex-shrink:0;border-radius:2px;padding:1px 0}
+.file-status.M{color:#e5c07b}.file-status.A{color:var(--green)}.file-status.D{color:var(--red)}.file-status.U{color:var(--orange)}.file-status.R{color:var(--purple)}
+.file-name{flex:1;font-family:var(--font-mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-path{font-size:10px;color:var(--fg1);font-family:var(--font-mono)}
+
+/* ── section divider ── */
+.section-title{font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 6px;display:flex;align-items:center;gap:6px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── diff ── */
+.diff-file{background:var(--bg1);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:10px}
+.diff-file-header{padding:6px 12px;background:var(--bg2);font-family:var(--font-mono);font-size:12px;color:var(--yellow);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.diff-hunk-header{padding:2px 10px;background:#1a1a2e;color:#7c85b5;font-family:var(--font-mono);font-size:11px}
+.diff-line{padding:1px 10px;font-family:var(--font-mono);font-size:12px;white-space:pre;line-height:1.6;tab-size:2}
+.diff-add{background:rgba(78,201,176,.08);color:#b5f5ec}.diff-del{background:rgba(244,71,71,.08);color:#ffb3b3}.diff-ctx{color:var(--fg1)}
+.diff-stats{display:flex;gap:8px;margin-top:6px}
+.diff-stat-add{color:var(--green);font-size:12px}.diff-stat-del{color:var(--red);font-size:12px}
+.no-diff{color:var(--fg1);font-size:13px;padding:20px;text-align:center}
+
+/* ── commit log ── */
+.commit-list{list-style:none}
+.commit-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:start}
+.commit-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;position:relative}
+.commit-msg{font-size:13px;color:var(--fg0);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:480px}
+.commit-meta{font-size:11px;color:var(--fg1)}
+.commit-sha{font-family:var(--font-mono);font-size:11px;color:var(--fg1);background:var(--bg2);padding:1px 6px;border-radius:3px;cursor:pointer}
+.commit-sha:hover{color:var(--blue)}
+
+/* ── branches ── */
+.branch-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:3px}
+.branch-item:hover{background:var(--bg2)}
+.branch-item.current{color:var(--green)}
+.branch-name{flex:1;font-family:var(--font-mono);font-size:12px}
+.branch-remote{font-size:10px;color:var(--fg2)}
+
+/* ── alerts ── */
+.alert{border-radius:3px;padding:8px 12px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
+.alert.success{background:var(--green-dim);color:var(--green);border:1px solid #1e5a45}
+.alert.error{background:var(--red-dim);color:#ff8a8a;border:1px solid #5a1e1e}
+.alert.info{background:var(--blue-dim);color:var(--blue);border:1px solid #1e4a6a}
+.alert svg{flex-shrink:0;margin-top:1px}
+
+/* ── clone panel / welcome ── */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:var(--fg1)}
+.welcome svg{width:48px;height:48px;fill:var(--fg2)}
+.welcome h2{color:var(--fg0);font-size:18px;font-weight:500}
+.welcome p{font-size:13px;text-align:center;max-width:320px;line-height:1.6}
+
+/* ── spinner ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+
+/* ── tabs ── */
+.tab-row{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg1)}
+.tab{padding:7px 14px;font-size:12px;color:var(--fg1);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--fg0)}
+.tab.active{color:var(--fg0);border-bottom:2px solid var(--accent)}
+
+/* ── empty states ── */
+.empty{color:var(--fg2);font-size:12px;text-align:center;padding:24px;font-style:italic}
+
+/* ── terminal ── */
+#term-bar .term-title{font-size:12px;font-family:var(--font-mono);color:var(--fg0)}
+#term-bar .term-hint{font-size:11px;color:var(--fg2);margin-left:auto}
+#term-bar .term-chevron{transition:transform .2s;color:var(--fg2)}
+#term-bar .term-chevron.open{transform:rotate(180deg)}
+.term-resizer{height:5px;background:var(--border);cursor:ns-resize}
+.term-resizer:hover{background:var(--accent)}
+
+/* ── util ── */
+.hidden{display:none!important}
+.mono{font-family:var(--font-mono)}
+.muted{color:var(--fg1)}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── header ─────────────────────────────────────────────────────────── -->
+  <header id="header">
+    <div class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
+      WebGit
+    </div>
+    <select id="repo-select" class="repo-select" onchange="selectRepo(this.value)">
+      <option value="">— select repo —</option>
+    </select>
+    <span id="branch-badge" class="branch-badge hidden"></span>
+    <div class="spacer"></div>
+    <button class="hbtn" onclick="showPanel('clone')">
+      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4 9h1a1 1 0 0 0 0-2H4a8 8 0 0 1 7-7.93V1a1 1 0 0 0 2 0v-.93A8 8 0 0 1 20 7h-1a1 1 0 0 0 0 2h1a8 8 0 0 1-7 7.93z"/></svg>
+      Clone repo
+    </button>
+    <button class="hbtn" id="fetch-btn" onclick="fetchRemote()" title="Fetch all remotes">
+      <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Fetch
+    </button>
+  </header>
+
+  <!-- ── body ───────────────────────────────────────────────────────────── -->
+  <div id="body">
+
+    <!-- sidebar -->
+    <nav id="sidebar">
+      <div class="sb-section">
+        <div class="sb-label">workspace</div>
+        <div class="sb-item" id="nav-changes" onclick="showPanel('changes')">
+          <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          Changes
+          <span class="badge hidden" id="changes-badge">0</span>
+        </div>
+        <div class="sb-item" id="nav-diff" onclick="showPanel('diff')">
+          <svg viewBox="0 0 24 24"><path d="M8.7 15.9L4.8 12l3.9-3.9c.39-.39.39-1.01 0-1.4-.39-.39-1.01-.39-1.4 0l-4.59 4.59c-.39.39-.39 1.02 0 1.41l4.59 4.6c.39.39 1.01.39 1.4 0 .39-.39.39-1.01 0-1.41zm6.6 0l3.9-3.9-3.9-3.9c-.39-.39-.39-1.01 0-1.4.39-.39 1.01-.39 1.4 0l4.59 4.59c.39.39.39 1.02 0 1.41l-4.59 4.6c-.39.39-1.01.39-1.4 0-.39-.39-.39-1.01 0-1.41z"/></svg>
+          Diff viewer
+        </div>
+        <div class="sb-item" id="nav-commit" onclick="showPanel('commit')">
+          <svg viewBox="0 0 24 24"><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5zm-5-9c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/></svg>
+          Commit
+        </div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">remote</div>
+        <div class="sb-item" id="nav-history" onclick="showPanel('history')">
+          <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+          History
+        </div>
+        <div class="sb-item" id="nav-branches" onclick="showPanel('branches')">
+          <svg viewBox="0 0 24 24"><path d="M17 4c-1.66 0-3 1.34-3 3 0 1.18.68 2.2 1.67 2.72-.03.12-.04.24-.04.36-.37 1.6-1.77 3.06-3.63 4-1.86-.94-3.26-2.4-3.63-4-.01-.12-.03-.24-.04-.36C9.32 9.2 10 8.18 10 7c0-1.66-1.34-3-3-3S4 5.34 4 7c0 1.18.68 2.2 1.67 2.72.05.44.14.88.28 1.29C6.62 13.23 8.38 15 10.5 16.16V20H8v2h8v-2h-2.5v-3.84C15.62 15 17.38 13.23 18.05 11c.14-.41.23-.85.28-1.29C19.32 9.2 20 8.18 20 7c0-1.66-1.34-3-3-3z"/></svg>
+          Branches
+        </div>
+        <div class="sb-item" id="nav-push" onclick="showPanel('push')">
+          <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+          Push / Pull
+        </div>
+      </div>
+      <div class="sb-section" id="sb-repos-section">
+        <div class="sb-label">repositories</div>
+        <div id="sb-repos"></div>
+      </div>
+    </nav>
+
+    <!-- main -->
+    <div id="main">
+      <div class="tab-row hidden" id="tab-row">
+        <div class="tab" id="tab-unstaged" onclick="setChangesTab('unstaged')">Unstaged</div>
+        <div class="tab" id="tab-staged" onclick="setChangesTab('staged')">Staged</div>
+      </div>
+
+      <!-- welcome -->
+      <div class="panel" id="panel-welcome">
+        <div class="welcome">
+          <svg viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
+          <h2>WebGit</h2>
+          <p>Clone a repository to get started, or select one from the sidebar.</p>
+          <button class="btn primary" onclick="showPanel('clone')">Clone a repository</button>
+        </div>
+      </div>
+
+      <!-- clone -->
+      <div class="panel hidden" id="panel-clone">
+        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4 9h1a1 1 0 0 0 0-2H4a8 8 0 0 1 7-7.93V1a1 1 0 0 0 2 0v-.93A8 8 0 0 1 20 7h-1a1 1 0 0 0 0 2h1a8 8 0 0 1-7 7.93z"/></svg> Clone repository</div>
+        <div id="clone-alert"></div>
+        <div class="field"><label>Repository URL (HTTPS)</label><input type="text" id="clone-url" placeholder="https://github.com/user/repo.git" /></div>
+        <div class="field"><label>Name (optional — defaults to repo name)</label><input type="text" id="clone-name" placeholder="my-project" /></div>
+        <div class="field"><label>Personal Access Token (for private repos)</label><input type="password" id="clone-token" placeholder="ghp_..." /></div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="doClone()" id="clone-btn">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Clone
+          </button>
+        </div>
+        <div id="clone-repos-list" style="margin-top:24px">
+          <div class="section-title">existing repos on server</div>
+          <div id="existing-repos"></div>
+        </div>
+      </div>
+
+      <!-- changes -->
+      <div class="panel hidden" id="panel-changes">
+        <div id="changes-alert"></div>
+        <div id="changes-content"><div class="empty">Select a repository first</div></div>
+      </div>
+
+      <!-- diff -->
+      <div class="panel hidden" id="panel-diff">
+        <div class="panel-header">
+          <svg viewBox="0 0 24 24"><path d="M8.7 15.9L4.8 12l3.9-3.9c.39-.39.39-1.01 0-1.4-.39-.39-1.01-.39-1.4 0l-4.59 4.59c-.39.39-.39 1.02 0 1.41l4.59 4.6c.39.39 1.01.39 1.4 0 .39-.39.39-1.01 0-1.41zm6.6 0l3.9-3.9-3.9-3.9c-.39-.39-.39-1.01 0-1.4.39-.39 1.01-.39 1.4 0l4.59 4.59c.39.39.39 1.02 0 1.41l-4.59 4.6c-.39.39-1.01.39-1.4 0-.39-.39-.39-1.01 0-1.41z"/></svg>
+          Diff
+          <select id="diff-file-select" class="repo-select" style="font-size:11px;padding:2px 6px" onchange="loadDiff()"></select>
+          <label style="font-size:11px;color:var(--fg1);display:flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="diff-staged" onchange="loadDiff()" /> staged
+          </label>
+        </div>
+        <div id="diff-content"><div class="no-diff">Select a file above to view its diff</div></div>
+      </div>
+
+      <!-- commit -->
+      <div class="panel hidden" id="panel-commit">
+        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5zm-5-9c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/></svg> Commit</div>
+        <div id="commit-alert"></div>
+        <div class="field"><label>Commit message</label><textarea id="commit-msg" placeholder="feat: describe your changes"></textarea></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><label>Author name</label><input type="text" id="commit-author" placeholder="Your Name" /></div>
+          <div class="field"><label>Author email</label><input type="text" id="commit-email" placeholder="you@example.com" /></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="doCommit()">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5z"/></svg>
+            Commit staged
+          </button>
+          <button class="btn" onclick="doAddAll()">Stage all &amp; commit</button>
+        </div>
+      </div>
+
+      <!-- history -->
+      <div class="panel hidden" id="panel-history">
+        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg> Commit history</div>
+        <div id="history-content"><div class="empty">Select a repository first</div></div>
+      </div>
+
+      <!-- branches -->
+      <div class="panel hidden" id="panel-branches">
+        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M17 4c-1.66 0-3 1.34-3 3 0 1.18.68 2.2 1.67 2.72-.03.12-.04.24-.04.36-.37 1.6-1.77 3.06-3.63 4-1.86-.94-3.26-2.4-3.63-4-.01-.12-.03-.24-.04-.36C9.32 9.2 10 8.18 10 7c0-1.66-1.34-3-3-3S4 5.34 4 7c0 1.18.68 2.2 1.67 2.72.05.44.14.88.28 1.29C6.62 13.23 8.38 15 10.5 16.16V20H8v2h8v-2h-2.5v-3.84C15.62 15 17.38 13.23 18.05 11c.14-.41.23-.85.28-1.29C19.32 9.2 20 8.18 20 7c0-1.66-1.34-3-3-3z"/></svg> Branches</div>
+        <div id="branches-content"><div class="empty">Select a repository first</div></div>
+        <div class="section-title" style="margin-top:16px">new branch</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="new-branch-name" placeholder="feature/my-feature" style="flex:1;background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:3px;padding:5px 9px;font-size:12px" />
+          <button class="btn primary" onclick="createBranch()">Create &amp; checkout</button>
+        </div>
+      </div>
+
+      <!-- push/pull -->
+      <div class="panel hidden" id="panel-push">
+        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg> Push / Pull</div>
+        <div id="push-alert"></div>
+        <div class="field"><label>Personal Access Token (GitHub / GitLab / Bitbucket)</label><input type="password" id="push-token" placeholder="ghp_..." /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><label>Remote</label><input type="text" id="push-remote" value="origin" /></div>
+          <div class="field"><label>Branch (blank = current)</label><input type="text" id="push-branch" placeholder="main" /></div>
+        </div>
+        <div id="push-status" style="font-size:12px;color:var(--fg1);margin-bottom:10px"></div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="doPush()">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+            Push
+          </button>
+          <button class="btn" onclick="doPull()">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Pull
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── terminal ─────────────────────────────────────────────────────────── -->
+  <div id="terminal-wrap" style="height:280px">
+    <div class="term-resizer" id="term-resizer"></div>
+    <div id="term-bar" onclick="toggleTerminal()">
+      <svg width="14" height="14" fill="var(--fg1)" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 8l1.5 1.5L5 12l2.5 2.5L6 16l-4-4 4-4zm12 8l-4-4 4-4 1.5 1.5L17 12l2.5 2.5L18 16z"/></svg>
+      <span class="term-title">Git Bash Terminal</span>
+      <span class="term-hint" id="term-hint">Click to expand · raw git commands</span>
+      <svg class="term-chevron open" id="term-chevron" width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z"/></svg>
+    </div>
+    <div id="xterm-container" style="height:236px"></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────────────────
+const state = {
+  repo: null,
+  branch: null,
+  status: null,
+  changesTab: 'unstaged',
+  termOpen: true,
+  repos: [],
+  _pendingDiffFile:   null,   // set by quickDiff(), consumed by loadDiffFiles()
+  _pendingDiffStaged: false,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API helpers
+// ─────────────────────────────────────────────────────────────────────────────
+async function api(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+const GET  = url => api('GET', url);
+const POST = (url, body) => api('POST', url, body);
+const DEL  = url => api('DELETE', url);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel routing
+// ─────────────────────────────────────────────────────────────────────────────
+const PANELS = ['welcome','clone','changes','diff','commit','history','branches','push'];
+const NAV_MAP = { changes:'nav-changes', diff:'nav-diff', commit:'nav-commit', history:'nav-history', branches:'nav-branches', push:'nav-push' };
+const TAB_PANELS = ['changes','diff']; // panels that show tab-row
+
+function showPanel(id) {
+  PANELS.forEach(p => document.getElementById('panel-'+p)?.classList.toggle('hidden', p !== id));
+  Object.entries(NAV_MAP).forEach(([p, n]) => document.getElementById(n)?.classList.toggle('active', p === id));
+  const showTabs = TAB_PANELS.includes(id);
+  document.getElementById('tab-row').classList.toggle('hidden', !showTabs);
+  if (id === 'changes') loadChanges();
+  if (id === 'diff')    loadDiffFiles();
+  if (id === 'history') loadHistory();
+  if (id === 'branches') loadBranches();
+  if (id === 'push')    loadPushStatus();
+  if (id === 'clone')   loadExistingRepos();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Repo selector
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadRepos() {
+  const { repos } = await GET('/api/repos');
+  state.repos = repos;
+  const sel = document.getElementById('repo-select');
+  sel.innerHTML = '<option value="">— select repo —</option>';
+  repos.forEach(r => {
+    const o = document.createElement('option');
+    o.value = r.name; o.textContent = r.name;
+    if (r.name === state.repo) o.selected = true;
+    sel.appendChild(o);
+  });
+  renderSbRepos(repos);
+  return repos;
+}
+
+function renderSbRepos(repos) {
+  const c = document.getElementById('sb-repos');
+  c.innerHTML = repos.length ? repos.map(r => `
+    <div class="sb-item${r.name === state.repo ? ' active' : ''}" onclick="selectRepo('${r.name}')">
+      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span>
+      <span style="font-size:10px;color:var(--fg2);flex-shrink:0">${r.branch || ''}</span>
+    </div>
+  `).join('') : '<div class="empty">No repos yet</div>';
+}
+
+async function selectRepo(name) {
+  if (!name) return;
+  state.repo = name;
+  document.getElementById('repo-select').value = name;
+  const badge = document.getElementById('branch-badge');
+  // Load status to get branch
+  try {
+    state.status = await GET(`/api/repos/${name}/status`);
+    state.branch = state.status.current;
+    badge.textContent = state.branch || 'HEAD';
+    badge.classList.remove('hidden');
+    document.getElementById('changes-badge').textContent = state.status.files?.length || 0;
+    document.getElementById('changes-badge').classList.toggle('hidden', !state.status.files?.length);
+  } catch (e) {
+    badge.classList.add('hidden');
+  }
+  // Reconnect terminal to new repo
+  termConnect(name);
+  showPanel('changes');
+  renderSbRepos(state.repos);
+  loadRepos(); // refresh list
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Changes panel
+// ─────────────────────────────────────────────────────────────────────────────
+function setChangesTab(tab) {
+  state.changesTab = tab;
+  document.getElementById('tab-unstaged').classList.toggle('active', tab === 'unstaged');
+  document.getElementById('tab-staged').classList.toggle('active', tab === 'staged');
+  renderChanges();
+}
+
+async function loadChanges() {
+  if (!state.repo) return;
+  try {
+    state.status = await GET(`/api/repos/${state.repo}/status`);
+    renderChanges();
+  } catch (e) {
+    document.getElementById('changes-content').innerHTML = '';
+    showAlert('changes-alert', 'error', e.message);
+  }
+}
+
+function renderChanges() {
+  const s = state.status;
+  if (!s) return;
+  const tab = state.changesTab;
+
+  // Build file arrays
+  const unstaged = [];
+  const staged   = [];
+
+  s.files.forEach(f => {
+    const idx = f.index.trim();
+    const wd  = f.working_dir.trim();
+    if (wd && wd !== ' ')  unstaged.push({ path: f.path, st: wd });
+    if (idx && idx !== ' ' && idx !== '?') staged.push({ path: f.path, st: idx });
+  });
+  // untracked
+  s.not_added?.forEach(p => unstaged.push({ path: p, st: 'U' }));
+
+  document.getElementById('tab-unstaged').textContent = `Unstaged (${unstaged.length})`;
+  document.getElementById('tab-staged').textContent   = `Staged (${staged.length})`;
+
+  const list = tab === 'unstaged' ? unstaged : staged;
+  const isEmpty = list.length === 0;
+
+  const btns = tab === 'unstaged'
+    ? `<div class="btn-row">
+        <button class="btn sm primary" onclick="stageAll()">Stage all</button>
+        <button class="btn sm" onclick="stageSelected()">Stage selected</button>
+       </div>`
+    : `<div class="btn-row">
+        <button class="btn sm" onclick="unstageAll()">Unstage all</button>
+        <button class="btn sm" onclick="unstageSelected()">Unstage selected</button>
+        <button class="btn sm primary" onclick="showPanel('commit')" style="margin-left:auto">Commit staged →</button>
+       </div>`;
+
+  document.getElementById('changes-content').innerHTML = isEmpty
+    ? `<div class="empty">${tab === 'unstaged' ? 'Working tree clean — no changes' : 'Nothing staged'}</div>` + btns
+    : `<ul class="file-list" id="file-list">
+        ${list.map(f => `
+          <li class="file-item" onclick="this.classList.toggle('selected')" title="${f.path}">
+            <span class="file-status ${f.st}">${f.st}</span>
+            <span class="file-name">${f.path.split('/').pop()}</span>
+            <span class="file-path">${f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')+1) : ''}</span>
+            <button class="btn sm" onclick="event.stopPropagation();quickDiff('${f.path}',${tab==='staged'})" title="View diff">~</button>
+          </li>
+        `).join('')}
+       </ul>` + btns;
+
+  // update badge
+  const total = unstaged.length + staged.length;
+  document.getElementById('changes-badge').textContent = total;
+  document.getElementById('changes-badge').classList.toggle('hidden', total === 0);
+}
+
+function getSelectedFiles() {
+  // Returns full paths of selected file-items (same logic as getCheckedPaths)
+  return getCheckedPaths();
+}
+
+function getCheckedPaths() {
+  return [...document.querySelectorAll('#file-list .file-item.selected')]
+    .map(el => {
+      const name = el.querySelector('.file-name').textContent;
+      const dir  = el.querySelector('.file-path').textContent;
+      return dir + name;
+    });
+}
+
+async function stageAll() {
+  if (!state.repo) return;
+  try { await POST(`/api/repos/${state.repo}/add`, { files: ['.'] }); await loadChanges(); }
+  catch (e) { showAlert('changes-alert', 'error', e.message); }
+}
+
+async function stageSelected() {
+  const files = getCheckedPaths();
+  if (!files.length) { stageAll(); return; }
+  try { await POST(`/api/repos/${state.repo}/add`, { files }); await loadChanges(); }
+  catch (e) { showAlert('changes-alert', 'error', e.message); }
+}
+
+async function unstageAll() {
+  if (!state.repo) return;
+  try { await POST(`/api/repos/${state.repo}/reset`, {}); await loadChanges(); }
+  catch (e) { showAlert('changes-alert', 'error', e.message); }
+}
+
+async function unstageSelected() {
+  const files = getCheckedPaths();
+  if (!files.length) { unstageAll(); return; }
+  try { await POST(`/api/repos/${state.repo}/reset`, { files }); await loadChanges(); }
+  catch (e) { showAlert('changes-alert', 'error', e.message); }
+}
+
+function quickDiff(filePath, staged) {
+  // Can't set diff-file-select.value before options exist (loadDiffFiles is async).
+  // Store what we want and let loadDiffFiles pick it up once options are built.
+  state._pendingDiffFile   = filePath;
+  state._pendingDiffStaged = staged;
+  showPanel('diff');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Diff panel
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadDiffFiles() {
+  if (!state.repo) return;
+  const s = state.status || await GET(`/api/repos/${state.repo}/status`);
+  const files = s.files.map(f => f.path);
+  const sel = document.getElementById('diff-file-select');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">all changed files</option>' + files.map(f => `<option value="${f}">${f}</option>`).join('');
+
+  // quickDiff sets these before options exist; apply them now that options are populated
+  if (state._pendingDiffFile != null) {
+    if (files.includes(state._pendingDiffFile)) sel.value = state._pendingDiffFile;
+    document.getElementById('diff-staged').checked = !!state._pendingDiffStaged;
+    state._pendingDiffFile  = null;
+    state._pendingDiffStaged = false;
+  } else if (prev && files.includes(prev)) {
+    sel.value = prev;
+  }
+
+  if (sel.value) loadDiff();
+}
+
+async function loadDiff() {
+  if (!state.repo) return;
+  const file   = document.getElementById('diff-file-select').value;
+  const staged = document.getElementById('diff-staged').checked;
+  try {
+    const params = new URLSearchParams({ staged: staged ? 'true' : 'false' });
+    if (file) params.set('file', file);
+    const { diff } = await GET(`/api/repos/${state.repo}/diff?${params}`);
+    document.getElementById('diff-content').innerHTML = diff ? renderDiff(diff) : '<div class="no-diff">No changes to show</div>';
+  } catch (e) {
+    document.getElementById('diff-content').innerHTML = `<div class="no-diff" style="color:var(--red)">${e.message}</div>`;
+  }
+}
+
+function renderDiff(raw) {
+  let html = '';
+  let inFile = false;
+  raw.split('\n').forEach(line => {
+    if (line.startsWith('diff --git')) {
+      if (inFile) html += '</div>';
+      const fname = line.replace('diff --git a/', '').split(' b/')[0];
+      html += `<div class="diff-file"><div class="diff-file-header">${escHtml(fname)}</div>`;
+      inFile = true;
+    } else if (line.startsWith('@@')) {
+      html += `<div class="diff-hunk-header">${escHtml(line)}</div>`;
+    } else if (line.startsWith('---') || line.startsWith('+++') || line.startsWith('index ') || line.startsWith('new file') || line.startsWith('deleted file')) {
+      // skip these header lines
+    } else if (line.startsWith('+')) {
+      html += `<div class="diff-line diff-add">${escHtml(line)}</div>`;
+    } else if (line.startsWith('-')) {
+      html += `<div class="diff-line diff-del">${escHtml(line)}</div>`;
+    } else {
+      html += `<div class="diff-line diff-ctx">${escHtml(line)}</div>`;
+    }
+  });
+  if (inFile) html += '</div>';
+  const adds = (raw.match(/^\+[^+]/mg) || []).length;
+  const dels = (raw.match(/^-[^-]/mg) || []).length;
+  html += `<div class="diff-stats"><span class="diff-stat-add">+${adds} additions</span><span class="diff-stat-del">−${dels} deletions</span></div>`;
+  return html || '<div class="no-diff">Empty diff</div>';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Commit panel
+// ─────────────────────────────────────────────────────────────────────────────
+async function doCommit() {
+  if (!state.repo) return showAlert('commit-alert', 'error', 'No repo selected');
+  const msg   = document.getElementById('commit-msg').value.trim();
+  const name  = document.getElementById('commit-author').value.trim();
+  const email = document.getElementById('commit-email').value.trim();
+  if (!msg) return showAlert('commit-alert', 'error', 'Commit message is required');
+  try {
+    const r = await POST(`/api/repos/${state.repo}/commit`, { message: msg, author_name: name, author_email: email });
+    showAlert('commit-alert', 'success', `Committed: ${r.commit || 'done'}`);
+    document.getElementById('commit-msg').value = '';
+    loadChanges();
+    state.branch = (await GET(`/api/repos/${state.repo}/status`)).current;
+    document.getElementById('branch-badge').textContent = state.branch;
+  } catch (e) { showAlert('commit-alert', 'error', e.message); }
+}
+
+async function doAddAll() {
+  if (!state.repo) return;
+  try {
+    await POST(`/api/repos/${state.repo}/add`, { files: ['.'] });
+    doCommit();
+  } catch (e) { showAlert('commit-alert', 'error', e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// History panel
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  if (!state.repo) return;
+  const el = document.getElementById('history-content');
+  el.innerHTML = '<div class="empty"><span class="spinner"></span> Loading...</div>';
+  try {
+    const { all } = await GET(`/api/repos/${state.repo}/log`);
+    if (!all.length) { el.innerHTML = '<div class="empty">No commits yet</div>'; return; }
+    el.innerHTML = `<ul class="commit-list">${all.map(c => `
+      <li class="commit-item">
+        <div class="commit-dot"></div>
+        <div>
+          <div class="commit-msg" title="${escHtml(c.message)}">${escHtml(c.message)}</div>
+          <div class="commit-meta">${escHtml(c.author_name)} &middot; ${new Date(c.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+        </div>
+        <span class="commit-sha" title="Click to copy" onclick="navigator.clipboard.writeText('${c.hash}')" >${c.hash.slice(0,7)}</span>
+      </li>
+    `).join('')}</ul>`;
+  } catch (e) { el.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Branches panel
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadBranches() {
+  if (!state.repo) return;
+  const el = document.getElementById('branches-content');
+  try {
+    const data = await GET(`/api/repos/${state.repo}/branches`);
+    const current = data.current;
+    const locals  = data.branches ? Object.values(data.branches) : [];
+    el.innerHTML = `<div style="margin-bottom:8px;font-size:11px;color:var(--fg1)">Current: <span style="color:var(--green)">${escHtml(current)}</span></div>
+      ${locals.map(b => `
+        <div class="branch-item${b.current ? ' current' : ''}">
+          <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M17 4c-1.66 0-3 1.34-3 3 0 1.18.68 2.2 1.67 2.72-.03.12-.04.24-.04.36-.37 1.6-1.77 3.06-3.63 4-1.86-.94-3.26-2.4-3.63-4-.01-.12-.03-.24-.04-.36C9.32 9.2 10 8.18 10 7c0-1.66-1.34-3-3-3S4 5.34 4 7c0 1.18.68 2.2 1.67 2.72.05.44.14.88.28 1.29C6.62 13.23 8.38 15 10.5 16.16V20H8v2h8v-2h-2.5v-3.84C15.62 15 17.38 13.23 18.05 11c.14-.41.23-.85.28-1.29C19.32 9.2 20 8.18 20 7c0-1.66-1.34-3-3-3z"/></svg>
+          <span class="branch-name">${escHtml(b.name)}</span>
+          ${b.current ? '<span style="font-size:10px;color:var(--green)">current</span>' : `<button class="btn sm" onclick="checkoutBranch('${escHtml(b.name)}')">Checkout</button>`}
+        </div>
+      `).join('')}`;
+  } catch (e) { el.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`; }
+}
+
+async function checkoutBranch(name) {
+  if (!state.repo) return;
+  try {
+    await POST(`/api/repos/${state.repo}/checkout`, { branch: name });
+    state.branch = name;
+    document.getElementById('branch-badge').textContent = name;
+    termSend(`git checkout ${name}\n`);
+    loadBranches();
+  } catch (e) { alert(e.message); }
+}
+
+async function createBranch() {
+  if (!state.repo) return;
+  const name = document.getElementById('new-branch-name').value.trim();
+  if (!name) return;
+  try {
+    await POST(`/api/repos/${state.repo}/checkout`, { branch: name, create: true });
+    state.branch = name;
+    document.getElementById('branch-badge').textContent = name;
+    document.getElementById('new-branch-name').value = '';
+    termSend(`git checkout -b ${name}\n`);
+    loadBranches();
+  } catch (e) { alert(e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Push / Pull panel
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadPushStatus() {
+  if (!state.repo || !state.status) return;
+  const el = document.getElementById('push-status');
+  const s = state.status;
+  el.innerHTML = `Branch: <span style="color:var(--green)">${escHtml(s.current||'')}</span>
+    &nbsp;·&nbsp; Tracking: <span style="color:var(--fg0)">${escHtml(s.tracking||'origin/'+s.current)}</span>
+    &nbsp;·&nbsp; <span style="color:var(--blue)">↑${s.ahead||0}</span> <span style="color:var(--orange)">↓${s.behind||0}</span>`;
+}
+
+async function doPush() {
+  if (!state.repo) return showAlert('push-alert', 'error', 'No repo selected');
+  const token  = document.getElementById('push-token').value.trim();
+  const remote = document.getElementById('push-remote').value.trim() || 'origin';
+  const branch = document.getElementById('push-branch').value.trim();
+  try {
+    await POST(`/api/repos/${state.repo}/push`, { token, remote, branch: branch || undefined, setUpstream: true });
+    showAlert('push-alert', 'success', `Pushed to ${remote}/${branch || state.branch}`);
+    termSend(`git push ${remote} ${branch || state.branch}\n`);
+  } catch (e) { showAlert('push-alert', 'error', e.message); }
+}
+
+async function doPull() {
+  if (!state.repo) return showAlert('push-alert', 'error', 'No repo selected');
+  const token  = document.getElementById('push-token').value.trim();
+  const remote = document.getElementById('push-remote').value.trim() || 'origin';
+  const branch = document.getElementById('push-branch').value.trim();
+  try {
+    const r = await POST(`/api/repos/${state.repo}/pull`, { token, remote, branch: branch || undefined });
+    const changes = r.summary ? `+${r.summary.insertions} -${r.summary.deletions}` : 'up to date';
+    showAlert('push-alert', 'success', `Pulled from ${remote}. ${changes}`);
+    loadChanges();
+  } catch (e) { showAlert('push-alert', 'error', e.message); }
+}
+
+async function fetchRemote() {
+  if (!state.repo) return;
+  const btn = document.getElementById('fetch-btn');
+  btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const token = document.getElementById('push-token')?.value?.trim();
+    await POST(`/api/repos/${state.repo}/fetch`, { token });
+    state.status = await GET(`/api/repos/${state.repo}/status`);
+  } catch (e) { console.error(e); }
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> Fetch';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clone panel
+// ─────────────────────────────────────────────────────────────────────────────
+async function doClone() {
+  const url   = document.getElementById('clone-url').value.trim();
+  const name  = document.getElementById('clone-name').value.trim();
+  const token = document.getElementById('clone-token').value.trim();
+  if (!url) return showAlert('clone-alert', 'error', 'URL is required');
+  const btn = document.getElementById('clone-btn');
+  btn.innerHTML = '<span class="spinner"></span> Cloning...';
+  btn.disabled = true;
+  try {
+    const { name: repoName } = await POST('/api/clone', { url, name: name || undefined, token: token || undefined });
+    showAlert('clone-alert', 'success', `Cloned successfully as "${repoName}"`);
+    document.getElementById('clone-url').value = '';
+    await loadRepos();
+    selectRepo(repoName);
+  } catch (e) { showAlert('clone-alert', 'error', e.message); }
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Clone';
+  btn.disabled = false;
+}
+
+async function loadExistingRepos() {
+  const el = document.getElementById('existing-repos');
+  try {
+    const { repos } = await GET('/api/repos');
+    if (!repos.length) { el.innerHTML = '<div class="empty">None yet</div>'; return; }
+    el.innerHTML = repos.map(r => `
+      <div class="file-item" style="justify-content:space-between">
+        <span class="file-name" style="max-width:240px">${escHtml(r.name)}</span>
+        <span class="muted" style="font-size:11px">${escHtml(r.branch||'')}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm primary" onclick="selectRepo('${r.name}')">Open</button>
+          <button class="btn sm danger" onclick="deleteRepo('${r.name}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  } catch {}
+}
+
+async function deleteRepo(name) {
+  if (!confirm(`Delete repo "${name}" from the server? This cannot be undone.`)) return;
+  try {
+    await DEL(`/api/repos/${name}`);
+    if (state.repo === name) { state.repo = null; document.getElementById('repo-select').value = ''; document.getElementById('branch-badge').classList.add('hidden'); showPanel('welcome'); }
+    await loadRepos();
+    loadExistingRepos();
+  } catch (e) { alert(e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// xterm.js terminal
+// ─────────────────────────────────────────────────────────────────────────────
+let term, fitAddon, termWs;
+let termOpen = true;
+
+function initTerminal() {
+  term = new Terminal({
+    theme: {
+      background: '#000000', foreground: '#cccccc',
+      cursor: '#4fc1ff', cursorAccent: '#000',
+      selection: '#264f78',
+    },
+    fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+    fontSize: 13, lineHeight: 1.4,
+    scrollback: 2000,
+    allowProposedApi: true,
+  });
+  fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(document.getElementById('xterm-container'));
+  fitAddon.fit();
+
+  term.onData(data => {
+    if (termWs?.readyState === WebSocket.OPEN)
+      termWs.send(JSON.stringify({ type: 'input', data }));
+  });
+
+  new ResizeObserver(() => { try { fitAddon.fit(); sendResize(); } catch {} })
+    .observe(document.getElementById('xterm-container'));
+
+  termConnect(null);
+}
+
+function termConnect(repo) {
+  if (termWs) { try { termWs.close(); } catch {} }
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const cols  = term?.cols || 80;
+  const rows  = term?.rows || 24;
+  const url   = `${proto}//${location.host}/terminal?${repo ? 'repo='+encodeURIComponent(repo)+'&' : ''}cols=${cols}&rows=${rows}`;
+  termWs = new WebSocket(url);
+
+  termWs.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'output') term.write(msg.data);
+    if (msg.type === 'exit')   term.write(`\r\n\x1b[33m[process exited with code ${msg.exitCode}]\x1b[0m\r\n`);
+    if (msg.type === 'error')  term.write(`\r\n\x1b[31m[error: ${msg.message}]\x1b[0m\r\n`);
+  };
+
+  termWs.onopen = () => {
+    sendResize();
+    if (repo) term.write(`\x1b[2m[connected to ${repo}]\x1b[0m\r\n`);
+  };
+
+  termWs.onclose = () => {
+    setTimeout(() => { if (state.repo) termConnect(state.repo); }, 3000);
+  };
+}
+
+function sendResize() {
+  if (termWs?.readyState === WebSocket.OPEN && term) {
+    termWs.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+  }
+}
+
+function termSend(text) {
+  if (termWs?.readyState === WebSocket.OPEN) {
+    termWs.send(JSON.stringify({ type: 'input', data: text }));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Terminal resize handle
+// ─────────────────────────────────────────────────────────────────────────────
+(function initResizer() {
+  const resizer  = document.getElementById('term-resizer');
+  const termWrap = document.getElementById('terminal-wrap');
+  let dragging = false, startY, startH;
+
+  resizer.addEventListener('mousedown', e => {
+    dragging = true; startY = e.clientY; startH = termWrap.offsetHeight;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ns-resize';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const newH = Math.max(100, Math.min(window.innerHeight - 100, startH - (e.clientY - startY)));
+    termWrap.style.height = newH + 'px';
+    document.getElementById('xterm-container').style.height = (newH - 40) + 'px';
+    try { fitAddon.fit(); sendResize(); } catch {}
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  });
+})();
+
+function toggleTerminal() {
+  const xterm = document.getElementById('xterm-container');
+  const chevron = document.getElementById('term-chevron');
+  const hint    = document.getElementById('term-hint');
+  const wrap    = document.getElementById('terminal-wrap');
+  termOpen = !termOpen;
+  xterm.style.display = termOpen ? '' : 'none';
+  document.getElementById('term-resizer').style.display = termOpen ? '' : 'none';
+  wrap.style.height = termOpen ? '280px' : '36px';
+  chevron.classList.toggle('open', termOpen);
+  hint.textContent = termOpen ? '' : 'Click to expand · raw git commands';
+  if (termOpen) { try { fitAddon.fit(); sendResize(); } catch {} }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showAlert(containerId, type, message) {
+  const icons = {
+    success: '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+    error:   '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
+    info:    '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+  };
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="alert ${type}">${icons[type]||''} ${escHtml(message)}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 6000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────────────────────
+(async function init() {
+  showPanel('welcome');
+  setChangesTab('unstaged');
+  try { await loadRepos(); }
+  catch (e) { console.error('Could not load repos', e); }
+  initTerminal();
+})();
+</script>
+</body>
+</html>
