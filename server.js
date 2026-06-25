@@ -105,6 +105,22 @@ app.delete('/api/repos/:repo', async (req, res) => {
   }
 });
 
+// Session cleanup — called via sendBeacon when the user leaves the page
+// Deletes all repos that were cloned in that browser session
+app.post('/api/cleanup', async (req, res) => {
+  const { repos } = req.body;
+  if (!Array.isArray(repos) || !repos.length) return res.json({ success: true, deleted: 0 });
+  let deleted = 0;
+  for (const name of repos) {
+    try {
+      await fs.rm(repoPath(safeRepoName(name)), { recursive: true, force: true });
+      deleted++;
+      console.log(`[cleanup] removed ${name}`);
+    } catch { /* already gone — that's fine */ }
+  }
+  res.json({ success: true, deleted });
+});
+
 // git status
 app.get('/api/repos/:repo/status', async (req, res) => {
   try { res.json(await g(req.params.repo).status()); }
@@ -364,7 +380,7 @@ wss.on('connection', (ws, req) => {
       if (msg.type === 'input')  ptyProc.write(msg.data);
       if (msg.type === 'resize') ptyProc.resize(
         Math.max(10, msg.cols),
-        Math.max(4,  msg.rows)
+                                                Math.max(4,  msg.rows)
       );
     } catch { /* ignore parse errors */ }
   });

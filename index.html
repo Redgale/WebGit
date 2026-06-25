@@ -4,180 +4,230 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>WebGit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" />
 <style>
 :root {
-  --bg0: #1e1e1e; --bg1: #252526; --bg2: #2d2d30; --bg3: #3c3c3c;
-  --fg0: #cccccc; --fg1: #858585; --fg2: #555555;
-  --blue: #4fc1ff; --blue-dim: #264f78; --blue-btn: #0e639c;
-  --green: #4ec9b0; --green-dim: #1e3a2f;
-  --red: #f44747; --red-dim: #3a1e1e;
-  --yellow: #dcdcaa; --orange: #ce9178;
-  --purple: #c586c0;
-  --border: #404040;
-  --accent: #0078d4;
-  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --bg-app:        #0a0c11;
+  --bg-surface:    #111419;
+  --bg-panel:      #0d1016;
+  --bg-elevated:   #181c24;
+  --bg-elevated-2: #1f2430;
+  --bg-hover:      #1b1f29;
+  --border:        #20242e;
+  --border-soft:   #181b23;
+  --fg0: #eef1f6;
+  --fg1: #97a0b3;
+  --fg2: #565d6e;
+  --accent:       #9888f5;
+  --accent-solid: #7c6af2;
+  --accent-2:     #4fd1e8;
+  --accent-soft:  rgba(145,129,244,.14);
+  --accent-line:  rgba(145,129,244,.35);
+  --green:  #4ddb8c;
+  --green-soft: rgba(77,219,140,.13);
+  --red:    #f37272;
+  --red-soft: rgba(243,114,114,.13);
+  --yellow: #f0c14b;
+  --blue:   #5eb3f5;
+  --orange: #f5a35c;
+  --purple: #c9b8ff;
+  --font-ui:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:  'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  --r-sm: 6px;
+  --r:    9px;
+  --r-lg: 14px;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.30);
+  --shadow-md: 0 8px 24px rgba(0,0,0,.38);
+  --shadow-glow: 0 0 0 1px var(--accent-line), 0 4px 18px rgba(124,106,242,.28);
 }
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);font-family:var(--font-ui);font-size:13px}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--bg-app); color: var(--fg0); font-family: var(--font-ui); font-size: 13px; -webkit-font-smoothing: antialiased; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #262b36; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #353c4a; }
+
+/* ── chrome icons — thin line style, colored via currentColor ── */
+svg.icon, svg[data-icon] { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ── layout ── */
-#app{display:grid;grid-template-rows:40px 1fr auto;height:100vh}
-#header{display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0}
-#header .logo{font-weight:600;font-size:14px;color:var(--fg0);display:flex;align-items:center;gap:6px}
-#header .logo svg{opacity:.8}
-#body{display:grid;grid-template-columns:200px 1fr;overflow:hidden}
-#sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
-#main{display:flex;flex-direction:column;overflow:hidden}
-#terminal-wrap{display:flex;flex-direction:column;border-top:1px solid var(--border);background:#000}
-#term-bar{display:flex;align-items:center;gap:8px;padding:4px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;cursor:pointer;user-select:none}
-#term-bar:hover{background:var(--bg3)}
-#xterm-container{overflow:hidden;padding:4px 8px;flex:1}
+#app { display: grid; grid-template-rows: 50px 1fr auto; height: 100vh; background: var(--bg-app); }
+#header {
+  display: flex; align-items: center; gap: 10px; padding: 0 18px;
+  background: linear-gradient(180deg, #14171f 0%, #10131a 100%);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+#header .logo { font-weight: 600; font-size: 14.5px; letter-spacing: -.01em; color: var(--fg0); display: flex; align-items: center; gap: 9px; }
+#header .logo .logo-mark { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#header .logo .logo-mark svg { width: 22px; height: 22px; }
+#body { display: grid; grid-template-columns: 220px 1fr; overflow: hidden; background: var(--bg-app); }
+#sidebar { background: var(--bg-surface); border-right: 1px solid var(--border-soft); display: flex; flex-direction: column; overflow-y: auto; padding: 8px 0; }
+#main { display: flex; flex-direction: column; overflow: hidden; background: var(--bg-panel); }
+#terminal-wrap { display: flex; flex-direction: column; border-top: 1px solid var(--border-soft); background: #07080b; }
+#term-bar { display: flex; align-items: center; gap: 9px; padding: 7px 14px; background: var(--bg-surface); border-bottom: 1px solid var(--border-soft); flex-shrink: 0; cursor: pointer; user-select: none; transition: background .15s; }
+#term-bar:hover { background: var(--bg-hover); }
+#xterm-container { overflow: hidden; padding: 6px 10px; flex: 1; }
 
 /* ── header controls ── */
-.repo-select{background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px;cursor:pointer;max-width:200px}
-.repo-select:focus{outline:none;border-color:var(--accent)}
-.hbtn{background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
-.hbtn:hover{background:var(--bg3);border-color:var(--fg1)}
-.hbtn.primary{background:var(--blue-btn);border-color:var(--blue-btn);color:#fff}
-.hbtn.primary:hover{background:#1177bb}
-.hbtn svg{width:13px;height:13px;fill:currentColor;flex-shrink:0}
-.spacer{flex:1}
-.branch-badge{background:var(--blue-dim);color:var(--blue);border-radius:3px;padding:2px 8px;font-size:11px;font-family:var(--font-mono)}
+.repo-select { background: var(--bg-elevated); color: var(--fg0); border: 1px solid var(--border); border-radius: var(--r); padding: 6px 12px; font-size: 12px; cursor: pointer; max-width: 200px; font-family: var(--font-ui); transition: border-color .15s, box-shadow .15s; }
+.repo-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.hbtn { background: var(--bg-elevated); color: var(--fg0); border: 1px solid var(--border); border-radius: var(--r); padding: 6px 13px; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 7px; font-family: var(--font-ui); transition: background .15s, border-color .15s, transform .1s, box-shadow .15s; font-weight: 500; }
+.hbtn:hover { background: var(--bg-hover); border-color: #2c3140; transform: translateY(-1px); }
+.hbtn:active { transform: translateY(0); }
+.hbtn.primary { background: linear-gradient(135deg, var(--accent-solid), #6f5ce0); border-color: transparent; color: #fff; box-shadow: var(--shadow-sm); }
+.hbtn.primary:hover { box-shadow: var(--shadow-glow); filter: brightness(1.07); }
+.hbtn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.spacer { flex: 1; }
+.branch-badge { background: var(--accent-soft); color: var(--purple); border: 1px solid var(--accent-line); border-radius: var(--r-sm); padding: 4px 10px; font-size: 11px; font-family: var(--font-mono); font-weight: 500; }
 
 /* ── sidebar ── */
-.sb-section{padding:8px 0}
-.sb-label{font-size:10px;color:var(--fg2);padding:4px 14px 2px;text-transform:uppercase;letter-spacing:.08em}
-.sb-item{display:flex;align-items:center;gap:8px;padding:5px 14px;cursor:pointer;color:var(--fg1);border-left:2px solid transparent}
-.sb-item:hover{background:var(--bg2);color:var(--fg0)}
-.sb-item.active{background:var(--blue-dim);color:var(--blue);border-left:2px solid var(--accent)}
-.sb-item svg{width:14px;height:14px;fill:currentColor;flex-shrink:0}
-.sb-item .badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:10px;padding:0 6px;font-size:10px;min-width:16px;text-align:center}
-.sb-item .badge.green{background:#2d6a4f}
-.sb-item .badge.red{background:#6a2d2d}
+.sb-section { padding: 4px 10px 8px; }
+.sb-label { font-size: 10px; color: var(--fg2); padding: 10px 6px 6px; text-transform: uppercase; letter-spacing: .09em; font-weight: 700; }
+.sb-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; cursor: pointer; color: var(--fg1); border-radius: var(--r); transition: background .14s, color .14s; margin-bottom: 1px; }
+.sb-item:hover { background: var(--bg-hover); color: var(--fg0); }
+.sb-item.active { background: var(--accent-soft); color: #cfc6ff; }
+.sb-item.active svg { color: var(--accent); }
+.sb-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: .9; }
+.sb-item .badge { margin-left: auto; background: var(--accent-solid); color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 10px; min-width: 16px; text-align: center; font-weight: 600; }
+.sb-item .badge.green { background: #1d7a4c; }
+.sb-item .badge.red   { background: #a33a3a; }
 
 /* ── panels ── */
-.panel{flex:1;overflow-y:auto;padding:16px}
-.panel-header{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--fg0);display:flex;align-items:center;gap:8px}
-.panel-header svg{width:16px;height:16px;fill:currentColor;opacity:.7}
+.panel { flex: 1; overflow-y: auto; padding: 22px 26px; }
+.panel-header { font-size: 14.5px; font-weight: 600; margin-bottom: 20px; color: var(--fg0); display: flex; align-items: center; gap: 10px; letter-spacing: -.01em; }
+.panel-header svg { width: 15px; height: 15px; opacity: .85; }
+.panel-header .icon-chip { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.panel-header .icon-chip svg { width: 15px; height: 15px; opacity: 1; }
 
 /* ── buttons ── */
-.btn{background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:3px;padding:4px 10px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit}
-.btn:hover{background:var(--bg3)}
-.btn.sm{padding:2px 7px;font-size:11px}
-.btn.primary{background:var(--blue-btn);border-color:var(--blue-btn);color:#fff}
-.btn.primary:hover{background:#1177bb}
-.btn.danger{background:#6a1f1f;border-color:#8b2222;color:#f88}
-.btn.danger:hover{background:#8b2222}
-.btn svg{width:12px;height:12px;fill:currentColor}
-.btn-row{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.btn { background: var(--bg-elevated); color: var(--fg0); border: 1px solid var(--border); border-radius: var(--r); padding: 6px 13px; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-ui); transition: background .14s, border-color .14s, transform .1s; font-weight: 500; }
+.btn:hover { background: var(--bg-hover); border-color: #2c3140; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn.sm { padding: 4px 9px; font-size: 11px; border-radius: var(--r-sm); }
+.btn.primary { background: linear-gradient(135deg, var(--accent-solid), #6f5ce0); border-color: transparent; color: #fff; box-shadow: var(--shadow-sm); }
+.btn.primary:hover { filter: brightness(1.08); box-shadow: var(--shadow-glow); }
+.btn.danger { background: var(--red-soft); border-color: rgba(243,114,114,.32); color: #ffb3b3; }
+.btn.danger:hover { background: rgba(243,114,114,.22); }
+.btn svg { width: 12.5px; height: 12.5px; }
+.btn-row { display: flex; gap: 9px; margin-top: 16px; flex-wrap: wrap; }
 
 /* ── form elements ── */
-.field{margin-bottom:10px}
-.field label{display:block;font-size:11px;color:var(--fg1);margin-bottom:4px}
-.field input,.field textarea,.field select{width:100%;background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:3px;padding:6px 9px;font-size:12px;font-family:inherit}
-.field textarea{resize:vertical;min-height:70px;font-family:var(--font-ui)}
-.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
-.field input[type=password]{font-family:var(--font-mono);letter-spacing:.05em}
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 10.5px; color: var(--fg1); margin-bottom: 6px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.field input, .field textarea, .field select { width: 100%; background: var(--bg-elevated); color: var(--fg0); border: 1px solid var(--border); border-radius: var(--r); padding: 8px 11px; font-size: 12.5px; font-family: var(--font-ui); transition: border-color .15s, box-shadow .15s; }
+.field textarea { resize: vertical; min-height: 80px; }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field input[type=password] { font-family: var(--font-mono); letter-spacing: .05em; }
 
-/* ── file list ── */
-.file-list{list-style:none}
-.file-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:3px;cursor:default}
-.file-item:hover{background:var(--bg2)}
-.file-item.selected{background:var(--blue-dim)}
-.file-status{font-size:10px;font-weight:700;width:16px;text-align:center;flex-shrink:0;border-radius:2px;padding:1px 0}
-.file-status.M{color:#e5c07b}.file-status.A{color:var(--green)}.file-status.D{color:var(--red)}.file-status.U{color:var(--orange)}.file-status.R{color:var(--purple)}
-.file-name{flex:1;font-family:var(--font-mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.file-path{font-size:10px;color:var(--fg1);font-family:var(--font-mono)}
+/* ── file list (changes panel) ── */
+.file-list { list-style: none; }
+.file-item { display: flex; align-items: center; gap: 9px; padding: 7px 11px; border-radius: var(--r); cursor: default; transition: background .12s; }
+.file-item:hover { background: var(--bg-elevated); }
+.file-item.selected { background: var(--accent-soft); }
+.file-status { font-size: 10px; font-weight: 700; width: 17px; height: 17px; line-height: 17px; text-align: center; flex-shrink: 0; border-radius: 5px; background: var(--bg-elevated-2); }
+.file-status.M { color: var(--yellow); } .file-status.A { color: var(--green); } .file-status.D { color: var(--red); } .file-status.U { color: var(--orange); } .file-status.R { color: var(--purple); }
+.file-name { flex: 1; font-family: var(--font-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-path { font-size: 10.5px; color: var(--fg2); font-family: var(--font-mono); }
 
 /* ── section divider ── */
-.section-title{font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 6px;display:flex;align-items:center;gap:6px}
-.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.section-title { font-size: 10px; color: var(--fg2); text-transform: uppercase; letter-spacing: .09em; margin: 18px 0 10px; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
 /* ── diff ── */
-.diff-file{background:var(--bg1);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:10px}
-.diff-file-header{padding:6px 12px;background:var(--bg2);font-family:var(--font-mono);font-size:12px;color:var(--yellow);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.diff-hunk-header{padding:2px 10px;background:#1a1a2e;color:#7c85b5;font-family:var(--font-mono);font-size:11px}
-.diff-line{padding:1px 10px;font-family:var(--font-mono);font-size:12px;white-space:pre;line-height:1.6;tab-size:2}
-.diff-add{background:rgba(78,201,176,.08);color:#b5f5ec}.diff-del{background:rgba(244,71,71,.08);color:#ffb3b3}.diff-ctx{color:var(--fg1)}
-.diff-stats{display:flex;gap:8px;margin-top:6px}
-.diff-stat-add{color:var(--green);font-size:12px}.diff-stat-del{color:var(--red);font-size:12px}
-.no-diff{color:var(--fg1);font-size:13px;padding:20px;text-align:center}
+.diff-file { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 14px; box-shadow: var(--shadow-xs); }
+.diff-file-header { padding: 9px 16px; background: var(--bg-elevated-2); font-family: var(--font-mono); font-size: 12px; color: var(--yellow); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 500; }
+.diff-hunk-header { padding: 3px 14px; background: rgba(94,179,245,.08); color: #7da3d6; font-family: var(--font-mono); font-size: 11px; }
+.diff-line { padding: 1px 14px; font-family: var(--font-mono); font-size: 12px; white-space: pre; line-height: 1.65; tab-size: 2; }
+.diff-add { background: rgba(77,219,140,.10); color: #8de8b3; }
+.diff-del { background: rgba(243,114,114,.10); color: #ffaaaa; }
+.diff-ctx { color: var(--fg1); }
+.diff-stats { display: flex; gap: 12px; margin-top: 10px; }
+.diff-stat-add { color: var(--green); font-size: 12px; font-weight: 500; }
+.diff-stat-del { color: var(--red); font-size: 12px; font-weight: 500; }
+.no-diff { color: var(--fg1); font-size: 13px; padding: 32px; text-align: center; }
 
 /* ── commit log ── */
-.commit-list{list-style:none}
-.commit-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:start}
-.commit-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;position:relative}
-.commit-msg{font-size:13px;color:var(--fg0);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:480px}
-.commit-meta{font-size:11px;color:var(--fg1)}
-.commit-sha{font-family:var(--font-mono);font-size:11px;color:var(--fg1);background:var(--bg2);padding:1px 6px;border-radius:3px;cursor:pointer}
-.commit-sha:hover{color:var(--blue)}
+.commit-list { list-style: none; }
+.commit-item { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; padding: 13px 6px; border-bottom: 1px solid var(--border-soft); align-items: start; transition: background .12s; border-radius: var(--r-sm); }
+.commit-item:hover { background: var(--bg-elevated); }
+.commit-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; box-shadow: 0 0 0 3px var(--accent-soft); }
+.commit-msg { font-size: 13px; color: var(--fg0); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; font-weight: 500; }
+.commit-meta { font-size: 11px; color: var(--fg1); }
+.commit-sha { font-family: var(--font-mono); font-size: 11px; color: var(--fg1); background: var(--bg-elevated-2); border: 1px solid var(--border); padding: 3px 8px; border-radius: var(--r-sm); cursor: pointer; transition: color .12s, border-color .12s; }
+.commit-sha:hover { color: var(--accent); border-color: var(--accent-line); }
 
 /* ── branches ── */
-.branch-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:3px}
-.branch-item:hover{background:var(--bg2)}
-.branch-item.current{color:var(--green)}
-.branch-name{flex:1;font-family:var(--font-mono);font-size:12px}
-.branch-remote{font-size:10px;color:var(--fg2)}
+.branch-item { display: flex; align-items: center; gap: 9px; padding: 8px 11px; border-radius: var(--r); transition: background .12s; }
+.branch-item:hover { background: var(--bg-elevated); }
+.branch-item.current { color: var(--green); }
+.branch-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+.branch-name { flex: 1; font-family: var(--font-mono); font-size: 12px; }
 
 /* ── alerts ── */
-.alert{border-radius:3px;padding:8px 12px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
-.alert.success{background:var(--green-dim);color:var(--green);border:1px solid #1e5a45}
-.alert.error{background:var(--red-dim);color:#ff8a8a;border:1px solid #5a1e1e}
-.alert.info{background:var(--blue-dim);color:var(--blue);border:1px solid #1e4a6a}
-.alert svg{flex-shrink:0;margin-top:1px}
+.alert { border-radius: var(--r); padding: 11px 15px; font-size: 12.5px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 9px; }
+.alert.success { background: var(--green-soft); color: #8de8b3; border: 1px solid rgba(77,219,140,.28); }
+.alert.error   { background: var(--red-soft); color: #ffaaaa; border: 1px solid rgba(243,114,114,.28); }
+.alert.info    { background: rgba(94,179,245,.12); color: var(--blue); border: 1px solid rgba(94,179,245,.28); }
+.alert svg { flex-shrink: 0; margin-top: 1px; width: 14px; height: 14px; }
 
-/* ── clone panel / welcome ── */
-.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:var(--fg1)}
-.welcome svg{width:48px;height:48px;fill:var(--fg2)}
-.welcome h2{color:var(--fg0);font-size:18px;font-weight:500}
-.welcome p{font-size:13px;text-align:center;max-width:320px;line-height:1.6}
+/* ── welcome ── */
+.welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 18px; color: var(--fg1); }
+.welcome .welcome-mark { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(155deg, var(--accent-soft), rgba(79,209,232,.08)); border: 1px solid var(--accent-line); display: flex; align-items: center; justify-content: center; }
+.welcome .welcome-mark svg { width: 30px; height: 30px; }
+.welcome h2 { color: var(--fg0); font-size: 21px; font-weight: 650; letter-spacing: -.02em; }
+.welcome p { font-size: 13px; text-align: center; max-width: 320px; line-height: 1.7; }
 
 /* ── spinner ── */
-@keyframes spin{to{transform:rotate(360deg)}}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
 
 /* ── tabs ── */
-.tab-row{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg1)}
-.tab{padding:7px 14px;font-size:12px;color:var(--fg1);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab:hover{color:var(--fg0)}
-.tab.active{color:var(--fg0);border-bottom:2px solid var(--accent)}
+.tab-row { display: flex; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; background: var(--bg-panel); padding: 0 10px; gap: 2px; }
+.tab { padding: 10px 15px; font-size: 12.5px; color: var(--fg1); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .14s; font-weight: 500; }
+.tab:hover { color: var(--fg0); }
+.tab.active { color: var(--fg0); border-bottom-color: var(--accent); }
 
 /* ── empty states ── */
-.empty{color:var(--fg2);font-size:12px;text-align:center;padding:24px;font-style:italic}
+.empty { color: var(--fg2); font-size: 12px; text-align: center; padding: 32px; }
 
 /* ── terminal ── */
-#term-bar .term-title{font-size:12px;font-family:var(--font-mono);color:var(--fg0)}
-#term-bar .term-hint{font-size:11px;color:var(--fg2);margin-left:auto}
-#term-bar .term-chevron{transition:transform .2s;color:var(--fg2)}
-#term-bar .term-chevron.open{transform:rotate(180deg)}
-.term-resizer{height:5px;background:var(--border);cursor:ns-resize}
-.term-resizer:hover{background:var(--accent)}
+#term-bar .term-title { font-size: 12px; font-family: var(--font-mono); color: var(--fg0); font-weight: 500; }
+#term-bar .term-hint { font-size: 11px; color: var(--fg2); margin-left: auto; }
+#term-bar .term-chevron { transition: transform .2s; color: var(--fg2); width: 14px; height: 14px; }
+#term-bar .term-chevron.open { transform: rotate(180deg); }
+.term-resizer { height: 4px; background: transparent; cursor: ns-resize; transition: background .15s; }
+.term-resizer:hover { background: var(--accent-line); }
 
 /* ── file browser / editor ── */
-#panel-files{padding:0;overflow:hidden;display:flex}
-.ft-pane{width:220px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
-.ft-toolbar{display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2)}
-.ft-item{display:flex;align-items:center;gap:5px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--fg1);white-space:nowrap;overflow:hidden;border-left:2px solid transparent;user-select:none}
-.ft-item:hover{background:var(--bg2);color:var(--fg0)}
-.ft-item.active{background:var(--blue-dim);color:var(--blue);border-left-color:var(--accent)}
-.ft-name{overflow:hidden;text-overflow:ellipsis;font-family:var(--font-mono);font-size:11px}
-.ft-dir>.ft-name{color:var(--fg0)}
-.editor-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.editor-bar{display:flex;align-items:center;gap:7px;padding:5px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;font-size:12px;min-width:0}
-.editor-filename{font-family:var(--font-mono);font-size:11px;color:var(--fg0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.editor-dirty{color:var(--orange);font-size:11px;flex-shrink:0}
-.editor-placeholder{flex:1;display:flex;align-items:center;justify-content:center;color:var(--fg2);font-size:13px;flex-direction:column;gap:8px}
-#cm-wrap{flex:1;overflow:hidden;position:relative}
-#cm-wrap .CodeMirror{height:100%;font-size:13px;font-family:'Cascadia Code','Fira Code',Consolas,monospace;line-height:1.5}
-#cm-wrap .CodeMirror-scroll{overflow:auto!important}
+#panel-files { padding: 0; overflow: hidden; display: flex; }
+.ft-pane { width: 235px; flex-shrink: 0; border-right: 1px solid var(--border-soft); overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-surface); }
+.ft-toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
+.ft-item { display: flex; align-items: center; gap: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; color: var(--fg1); white-space: nowrap; overflow: hidden; border-radius: var(--r-sm); user-select: none; transition: background .1s, color .1s; }
+.ft-item:hover { background: var(--bg-hover); color: var(--fg0); }
+.ft-item.active { background: var(--accent-soft); color: #d6cdff; }
+.ft-name { overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); font-size: 11.5px; }
+.ft-dir > .ft-name { color: var(--fg0); font-weight: 500; }
+.editor-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; background: var(--bg-panel); }
+.editor-bar { display: flex; align-items: center; gap: 8px; padding: 7px 14px; background: var(--bg-surface); border-bottom: 1px solid var(--border-soft); flex-shrink: 0; font-size: 12px; min-width: 0; }
+.editor-filename { font-family: var(--font-mono); font-size: 11px; color: var(--fg0); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-dirty { color: var(--orange); font-size: 11px; flex-shrink: 0; }
+.editor-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--fg2); font-size: 13px; flex-direction: column; gap: 12px; }
+.editor-placeholder svg { width: 34px; height: 34px; opacity: .35; }
+#cm-wrap { flex: 1; overflow: hidden; position: relative; }
+#cm-wrap .CodeMirror { height: 100%; font-size: 13px; font-family: var(--font-mono); line-height: 1.5; }
+#cm-wrap .CodeMirror-scroll { overflow: auto !important; }
 
-.mono{font-family:var(--font-mono)}
-.muted{color:var(--fg1)}
-.hidden{display:none !important}
+.mono   { font-family: var(--font-mono); }
+.muted  { color: var(--fg1); }
+.hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -186,7 +236,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
 
   <header id="header">
     <div class="logo">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
+      <span class="logo-mark" id="logo-mark-header"></span>
       WebGit
     </div>
     <select id="repo-select" class="repo-select" onchange="selectRepo(this.value)">
@@ -195,11 +245,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
     <span id="branch-badge" class="branch-badge hidden"></span>
     <div class="spacer"></div>
     <button class="hbtn" onclick="showPanel('clone')">
-      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4 9h1a1 1 0 0 0 0-2H4a8 8 0 0 1 7-7.93V1a1 1 0 0 0 2 0v-.93A8 8 0 0 1 20 7h-1a1 1 0 0 0 0 2h1a8 8 0 0 1-7 7.93z"/></svg>
+      <svg data-icon="download" viewBox="0 0 24 24"></svg>
       Clone repo
     </button>
     <button class="hbtn" id="fetch-btn" onclick="fetchRemote()" title="Fetch all remotes">
-      <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      <svg data-icon="refresh" viewBox="0 0 24 24"></svg>
       Fetch
     </button>
   </header>
@@ -210,35 +260,35 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
       <div class="sb-section">
         <div class="sb-label">workspace</div>
         <div class="sb-item" id="nav-changes" onclick="showPanel('changes')">
-          <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          <svg data-icon="changes" viewBox="0 0 24 24"></svg>
           Changes
           <span class="badge hidden" id="changes-badge">0</span>
         </div>
         <div class="sb-item" id="nav-diff" onclick="showPanel('diff')">
-          <svg viewBox="0 0 24 24"><path d="M8.7 15.9L4.8 12l3.9-3.9c.39-.39.39-1.01 0-1.4-.39-.39-1.01-.39-1.4 0l-4.59 4.59c-.39.39-.39 1.02 0 1.41l4.59 4.6c.39.39 1.01.39 1.4 0 .39-.39.39-1.01 0-1.41zm6.6 0l3.9-3.9-3.9-3.9c-.39-.39-.39-1.01 0-1.4.39-.39 1.01-.39 1.4 0l4.59 4.59c.39.39.39 1.02 0 1.41l-4.59 4.6c-.39.39-1.01.39-1.4 0-.39-.39-.39-1.01 0-1.41z"/></svg>
+          <svg data-icon="diff" viewBox="0 0 24 24"></svg>
           Diff viewer
         </div>
         <div class="sb-item" id="nav-commit" onclick="showPanel('commit')">
-          <svg viewBox="0 0 24 24"><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5zm-5-9c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/></svg>
+          <svg data-icon="commit" viewBox="0 0 24 24"></svg>
           Commit
         </div>
       </div>
       <div class="sb-section">
         <div class="sb-label">remote</div>
         <div class="sb-item" id="nav-history" onclick="showPanel('history')">
-          <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+          <svg data-icon="history" viewBox="0 0 24 24"></svg>
           History
         </div>
         <div class="sb-item" id="nav-branches" onclick="showPanel('branches')">
-          <svg viewBox="0 0 24 24"><path d="M17 4c-1.66 0-3 1.34-3 3 0 1.18.68 2.2 1.67 2.72-.03.12-.04.24-.04.36-.37 1.6-1.77 3.06-3.63 4-1.86-.94-3.26-2.4-3.63-4-.01-.12-.03-.24-.04-.36C9.32 9.2 10 8.18 10 7c0-1.66-1.34-3-3-3S4 5.34 4 7c0 1.18.68 2.2 1.67 2.72.05.44.14.88.28 1.29C6.62 13.23 8.38 15 10.5 16.16V20H8v2h8v-2h-2.5v-3.84C15.62 15 17.38 13.23 18.05 11c.14-.41.23-.85.28-1.29C19.32 9.2 20 8.18 20 7c0-1.66-1.34-3-3-3z"/></svg>
+          <svg data-icon="branch" viewBox="0 0 24 24"></svg>
           Branches
         </div>
         <div class="sb-item" id="nav-push" onclick="showPanel('push')">
-          <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+          <svg data-icon="pushpull" viewBox="0 0 24 24"></svg>
           Push / Pull
         </div>
         <div class="sb-item" id="nav-files" onclick="showPanel('files')">
-          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          <svg data-icon="folder" viewBox="0 0 24 24"></svg>
           Files
         </div>
       </div>
@@ -256,7 +306,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
 
       <div class="panel" id="panel-welcome">
         <div class="welcome">
-          <svg viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
+          <div class="welcome-mark" id="logo-mark-welcome"></div>
           <h2>WebGit</h2>
           <p>Clone a repository to get started, or select one from the sidebar.</p>
           <button class="btn primary" onclick="showPanel('clone')">Clone a repository</button>
@@ -264,14 +314,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
       </div>
 
       <div class="panel hidden" id="panel-clone">
-        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4 9h1a1 1 0 0 0 0-2H4a8 8 0 0 1 7-7.93V1a1 1 0 0 0 2 0v-.93A8 8 0 0 1 20 7h-1a1 1 0 0 0 0 2h1a8 8 0 0 1-7 7.93z"/></svg> Clone repository</div>
+        <div class="panel-header">
+          <span class="icon-chip"><svg data-icon="download" viewBox="0 0 24 24"></svg></span>
+          Clone repository
+        </div>
         <div id="clone-alert"></div>
         <div class="field"><label>Repository URL (HTTPS)</label><input type="text" id="clone-url" placeholder="https://github.com/user/repo.git" /></div>
-        <div class="field"><label>Name (optional — defaults to repo name)</label><input type="text" id="clone-name" placeholder="my-project" /></div>
-        <div class="field"><label>Personal Access Token (for private repos)</label><input type="password" id="clone-token" placeholder="ghp_..." /></div>
+        <div class="field"><label>Name (optional)</label><input type="text" id="clone-name" placeholder="my-project" /></div>
+        <div class="field"><label>Personal Access Token (private repos)</label><input type="password" id="clone-token" placeholder="ghp_..." /></div>
         <div class="btn-row">
           <button class="btn primary" onclick="doClone()" id="clone-btn">
-            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <svg data-icon="download" viewBox="0 0 24 24" style="width:12px;height:12px"></svg>
             Clone
           </button>
         </div>
@@ -288,7 +341,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
 
       <div class="panel hidden" id="panel-diff">
         <div class="panel-header">
-          <svg viewBox="0 0 24 24"><path d="M8.7 15.9L4.8 12l3.9-3.9c.39-.39.39-1.01 0-1.4-.39-.39-1.01-.39-1.4 0l-4.59 4.59c-.39.39-.39 1.02 0 1.41l4.59 4.6c.39.39 1.01.39 1.4 0 .39-.39.39-1.01 0-1.41zm6.6 0l3.9-3.9-3.9-3.9c-.39-.39-.39-1.01 0-1.4.39-.39 1.01-.39 1.4 0l4.59 4.59c.39.39.39 1.02 0 1.41l-4.59 4.6c-.39.39-1.01.39-1.4 0-.39-.39-.39-1.01 0-1.41z"/></svg>
+          <span class="icon-chip"><svg data-icon="diff" viewBox="0 0 24 24"></svg></span>
           Diff
           <select id="diff-file-select" class="repo-select" style="font-size:11px;padding:2px 6px" onchange="loadDiff()"></select>
           <label style="font-size:11px;color:var(--fg1);display:flex;align-items:center;gap:4px;cursor:pointer">
@@ -299,7 +352,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
       </div>
 
       <div class="panel hidden" id="panel-commit">
-        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5zm-5-9c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/></svg> Commit</div>
+        <div class="panel-header"><span class="icon-chip"><svg data-icon="commit" viewBox="0 0 24 24"></svg></span> Commit</div>
         <div id="commit-alert"></div>
         <div class="field"><label>Commit message</label><textarea id="commit-msg" placeholder="feat: describe your changes"></textarea></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -308,7 +361,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         </div>
         <div class="btn-row">
           <button class="btn primary" onclick="doCommit()">
-            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5z"/></svg>
+            <svg data-icon="commit" viewBox="0 0 24 24" style="width:12px;height:12px"></svg>
             Commit staged
           </button>
           <button class="btn" onclick="doAddAll()">Stage all &amp; commit</button>
@@ -316,24 +369,24 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
       </div>
 
       <div class="panel hidden" id="panel-history">
-        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg> Commit history</div>
+        <div class="panel-header"><span class="icon-chip"><svg data-icon="history" viewBox="0 0 24 24"></svg></span> Commit history</div>
         <div id="history-content"><div class="empty">Select a repository first</div></div>
       </div>
 
       <div class="panel hidden" id="panel-branches">
-        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M17 4c-1.66 0-3 1.34-3 3 0 1.18.68 2.2 1.67 2.72-.03.12-.04.24-.04.36-.37 1.6-1.77 3.06-3.63 4-1.86-.94-3.26-2.4-3.63-4-.01-.12-.03-.24-.04-.36C9.32 9.2 10 8.18 10 7c0-1.66-1.34-3-3-3S4 5.34 4 7c0 1.18.68 2.2 1.67 2.72.05.44.14.88.28 1.29C6.62 13.23 8.38 15 10.5 16.16V20H8v2h8v-2h-2.5v-3.84C15.62 15 17.38 13.23 18.05 11c.14-.41.23-.85.28-1.29C19.32 9.2 20 8.18 20 7c0-1.66-1.34-3-3-3z"/></svg> Branches</div>
+        <div class="panel-header"><span class="icon-chip"><svg data-icon="branch" viewBox="0 0 24 24"></svg></span> Branches</div>
         <div id="branches-content"><div class="empty">Select a repository first</div></div>
         <div class="section-title" style="margin-top:16px">new branch</div>
         <div style="display:flex;gap:8px">
-          <input type="text" id="new-branch-name" placeholder="feature/my-feature" style="flex:1;background:var(--bg2);color:var(--fg0);border:1px solid var(--border);border-radius:3px;padding:5px 9px;font-size:12px" />
+          <input type="text" id="new-branch-name" placeholder="feature/my-feature" style="flex:1;background:var(--bg-elevated);color:var(--fg0);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;font-size:12px;font-family:var(--font-ui)" />
           <button class="btn primary" onclick="createBranch()">Create &amp; checkout</button>
         </div>
       </div>
 
       <div class="panel hidden" id="panel-push">
-        <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg> Push / Pull</div>
+        <div class="panel-header"><span class="icon-chip"><svg data-icon="pushpull" viewBox="0 0 24 24"></svg></span> Push / Pull</div>
         <div id="push-alert"></div>
-        <div class="field"><label>Personal Access Token (GitHub / GitLab / Bitbucket)</label><input type="password" id="push-token" placeholder="ghp_..." /></div>
+        <div class="field"><label>Personal Access Token</label><input type="password" id="push-token" placeholder="ghp_..." /></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="field"><label>Remote</label><input type="text" id="push-remote" value="origin" /></div>
           <div class="field"><label>Branch (blank = current)</label><input type="text" id="push-branch" placeholder="main" /></div>
@@ -341,11 +394,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         <div id="push-status" style="font-size:12px;color:var(--fg1);margin-bottom:10px"></div>
         <div class="btn-row">
           <button class="btn primary" onclick="doPush()">
-            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+            <svg data-icon="upload" viewBox="0 0 24 24" style="width:12px;height:12px"></svg>
             Push
           </button>
           <button class="btn" onclick="doPull()">
-            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <svg data-icon="download" viewBox="0 0 24 24" style="width:12px;height:12px"></svg>
             Pull
           </button>
         </div>
@@ -354,10 +407,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
       <div class="panel hidden" id="panel-files">
         <div class="ft-pane">
           <div class="ft-toolbar">
-            <span style="font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.08em;flex:1">Explorer</span>
-            <button class="btn sm" title="New file" onclick="promptNewFile()" style="padding:1px 6px">+</button>
-            <button class="btn sm" title="Refresh tree" onclick="loadFileTree()" style="padding:1px 6px">
-              <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            <span style="font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.1em;flex:1;font-weight:600">Explorer</span>
+            <button class="btn sm" title="New file" onclick="promptNewFile()" style="padding:3px 6px">
+              <svg data-icon="plus" viewBox="0 0 24 24" style="width:11px;height:11px"></svg>
+            </button>
+            <button class="btn sm" title="Refresh tree" onclick="loadFileTree()" style="padding:3px 6px">
+              <svg data-icon="refresh" viewBox="0 0 24 24" style="width:11px;height:11px"></svg>
             </button>
           </div>
           <div id="ft-pane-body" style="overflow-y:auto;flex:1">
@@ -366,15 +421,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         </div>
         <div class="editor-pane">
           <div class="editor-placeholder" id="editor-placeholder">
-            <svg width="36" height="36" fill="currentColor" viewBox="0 0 24 24" opacity=".3"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>
+            <svg data-icon="file" viewBox="0 0 24 24"></svg>
             <span>Select a file to view or edit</span>
           </div>
           <div class="editor-bar hidden" id="editor-bar">
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;opacity:.6"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>
+            <svg data-icon="file" viewBox="0 0 24 24" style="width:12px;height:12px;flex-shrink:0;opacity:.5"></svg>
             <span class="editor-filename" id="editor-filename"></span>
             <span class="editor-dirty hidden" id="editor-dirty">● unsaved</span>
             <label class="btn sm" title="Upload files here" style="cursor:pointer">
-              <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+              <svg data-icon="upload" viewBox="0 0 24 24" style="width:11px;height:11px"></svg>
               Upload
               <input type="file" id="upload-input" multiple style="display:none" onchange="handleUpload(this)" />
             </label>
@@ -391,10 +446,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
   <div id="terminal-wrap" style="height:280px">
     <div class="term-resizer" id="term-resizer"></div>
     <div id="term-bar" onclick="toggleTerminal()">
-      <svg width="14" height="14" fill="var(--fg1)" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 8l1.5 1.5L5 12l2.5 2.5L6 16l-4-4 4-4zm12 8l-4-4 4-4 1.5 1.5L17 12l2.5 2.5L18 16z"/></svg>
-      <span class="term-title">Git Bash Terminal</span>
+      <svg data-icon="terminal" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--fg1)"></svg>
+      <span class="term-title">Terminal</span>
       <span class="term-hint" id="term-hint">Click to expand · raw git commands</span>
-      <svg class="term-chevron open" id="term-chevron" width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z"/></svg>
+      <svg data-icon="chevronUp" class="term-chevron open" id="term-chevron" viewBox="0 0 24 24"></svg>
     </div>
     <div id="xterm-container" style="height:236px"></div>
   </div>
@@ -414,17 +469,61 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
-// State
+// Icon system — thin line-style icons (24x24, stroke=currentColor)
+// Static markup uses <svg data-icon="name"> and gets hydrated by mountIcons().
+// Dynamically generated HTML embeds ICONS.name directly inside a svg.icon tag.
 // ─────────────────────────────────────────────────────────────────────────────
+const ICONS = {
+  download:  `<path d="M12 4v11"/><path d="m7.2 10.4 4.8 4.8 4.8-4.8"/><path d="M5 20h14"/>`,
+  upload:    `<path d="M12 20V9"/><path d="m7.2 13.6 4.8-4.8 4.8 4.8"/><path d="M5 4h14"/>`,
+  refresh:   `<path d="M4 12a8 8 0 0 1 13.8-5.6L20 8.5"/><path d="M20 3.5V8.5h-5"/><path d="M20 12a8 8 0 0 1-13.8 5.6L4 15.5"/><path d="M4 20.5V15.5h5"/>`,
+  changes:   `<circle cx="4.3" cy="6" r="1.3"/><circle cx="4.3" cy="12" r="1.3"/><circle cx="4.3" cy="18" r="1.3"/><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/>`,
+  diff:      `<circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M6 8.4V13a4 4 0 0 0 4 4h2"/><path d="M18 15.6V11a4 4 0 0 0-4-4h-2"/>`,
+  commit:    `<circle cx="12" cy="12" r="3.2"/><line x1="2.5" y1="12" x2="8.8" y2="12"/><line x1="15.2" y1="12" x2="21.5" y2="12"/>`,
+  history:   `<path d="M3.5 12a8.5 8.5 0 1 1 2.9 6.4"/><path d="M3.5 18.6v-4.8h4.8"/><path d="M12 8v4.3l3.2 1.9"/>`,
+  branch:    `<line x1="6" y1="3.5" x2="6" y2="14.5"/><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="6" r="2.6"/><path d="M18 8.6c0 5.8-3.3 8.7-9 8.9"/>`,
+  pushpull:  `<path d="M8 21V5.5"/><path d="m4.2 9 3.8-4 3.8 4"/><path d="M16 3v15.5"/><path d="m19.8 15-3.8 4-3.8-4"/>`,
+  folder:    `<path d="M3.5 7.2A1.7 1.7 0 0 1 5.2 5.5h4.1c.5 0 1 .2 1.3.6l1 1.1h6.2a1.7 1.7 0 0 1 1.7 1.7v8.4a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7Z"/>`,
+  folderOpen:`<path d="M3.5 7.2A1.7 1.7 0 0 1 5.2 5.5h4.1c.5 0 1 .2 1.3.6l1 1.1h6.2a1.7 1.7 0 0 1 1.7 1.7v.4H6.8a1.7 1.7 0 0 0-1.65 1.3l-1.5 6.1a1.7 1.7 0 0 1-1.65-1.7Z"/><path d="M5.65 16.9 7 11.6a1.7 1.7 0 0 1 1.65-1.3H20l-1.5 6.1a1.7 1.7 0 0 1-1.65 1.3H7.3a1.7 1.7 0 0 1-1.65-2.1Z"/>`,
+  terminal:  `<rect x="3" y="4.5" width="18" height="15" rx="2.2"/><path d="m7.5 9.5 3 2.7-3 2.7"/><line x1="12.5" y1="15" x2="17" y2="15"/>`,
+  chevronUp: `<path d="m5.5 14.5 6.5-6.5 6.5 6.5"/>`,
+  chevronRight: `<path d="m9 18 6-6-6-6"/>`,
+  file:      `<path d="M13.8 3H7.2a1.7 1.7 0 0 0-1.7 1.7v14.6A1.7 1.7 0 0 0 7.2 21h9.6a1.7 1.7 0 0 0 1.7-1.7V8.3Z"/><path d="M13.5 3v5.3h5.2"/>`,
+  check:     `<path d="M19.5 6 9.5 17l-5-5"/>`,
+  alertX:    `<path d="M17 7 7 17"/><path d="M7 7l10 10"/>`,
+  info:      `<circle cx="12" cy="12" r="8.5"/><line x1="12" y1="15" x2="12" y2="11"/><circle cx="12" cy="8.4" r="0.15" fill="currentColor" stroke="currentColor"/>`,
+  plus:      `<path d="M12 5.5v13"/><path d="M5.5 12h13"/>`,
+};
+
+// Brand mark — three connected nodes, gradient stroke
+function brandMark(size) {
+  const id = 'wgGrad' + Math.random().toString(36).slice(2, 8);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none">
+    <defs><linearGradient id="${id}" x1="2" y1="19" x2="21" y2="5" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9888f5"/><stop offset="1" stop-color="#4fd1e8"/>
+    </linearGradient></defs>
+    <circle cx="6" cy="18" r="2.5" stroke="url(#${id})" stroke-width="1.8"/>
+    <circle cx="6" cy="6" r="2.5" stroke="url(#${id})" stroke-width="1.8"/>
+    <circle cx="18" cy="12" r="2.5" stroke="url(#${id})" stroke-width="1.8"/>
+    <path d="M6 8.5v7" stroke="url(#${id})" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M8.4 13C10.5 13 12.8 12 15.5 12" stroke="url(#${id})" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function mountIcons(root) {
+  (root || document).querySelectorAll('svg[data-icon]').forEach(el => {
+    const name = el.dataset.icon;
+    if (ICONS[name] != null) el.innerHTML = ICONS[name];
+  });
+}
+
+</script>
+<script>
 const state = {
-  repo: null,
-  branch: null,
-  status: null,
-  changesTab: 'unstaged',
-  termOpen: true,
-  repos: [],
-  _pendingDiffFile:   null,   // set by quickDiff(), consumed by loadDiffFiles()
-  _pendingDiffStaged: false,
+  repo: null, branch: null, status: null,
+  changesTab: 'unstaged', termOpen: true, repos: [],
+  sessionRepos: [],         // repos cloned THIS session — deleted on page leave
+  _pendingDiffFile: null, _pendingDiffStaged: false,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -443,24 +542,38 @@ const POST = (url, body) => api('POST', url, body);
 const DEL  = url => api('DELETE', url);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Session cleanup — fires when the user navigates away / closes the tab
+// Uses sendBeacon so the request completes even during unload
+// ─────────────────────────────────────────────────────────────────────────────
+function sendCleanup() {
+  if (!state.sessionRepos.length) return;
+  const payload = new Blob(
+    [JSON.stringify({ repos: state.sessionRepos })],
+    { type: 'application/json' }
+  );
+  navigator.sendBeacon('/api/cleanup', payload);
+}
+window.addEventListener('beforeunload', sendCleanup);
+window.addEventListener('pagehide',     sendCleanup); // iOS Safari
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Panel routing
 // ─────────────────────────────────────────────────────────────────────────────
 const PANELS = ['welcome','clone','changes','diff','commit','history','branches','push','files'];
 const NAV_MAP = { changes:'nav-changes', diff:'nav-diff', commit:'nav-commit', history:'nav-history', branches:'nav-branches', push:'nav-push', files:'nav-files' };
-const TAB_PANELS = ['changes','diff']; // panels that show tab-row
+const TAB_PANELS = ['changes','diff'];
 
 function showPanel(id) {
   PANELS.forEach(p => document.getElementById('panel-'+p)?.classList.toggle('hidden', p !== id));
   Object.entries(NAV_MAP).forEach(([p, n]) => document.getElementById(n)?.classList.toggle('active', p === id));
-  const showTabs = TAB_PANELS.includes(id);
-  document.getElementById('tab-row').classList.toggle('hidden', !showTabs);
-  if (id === 'changes') loadChanges();
-  if (id === 'diff')    loadDiffFiles();
-  if (id === 'history') loadHistory();
+  document.getElementById('tab-row').classList.toggle('hidden', !TAB_PANELS.includes(id));
+  if (id === 'changes')  loadChanges();
+  if (id === 'diff')     loadDiffFiles();
+  if (id === 'history')  loadHistory();
   if (id === 'branches') loadBranches();
-  if (id === 'push')    loadPushStatus();
-  if (id === 'clone')   loadExistingRepos();
-  if (id === 'files')   loadFileTree();
+  if (id === 'push')     loadPushStatus();
+  if (id === 'clone')    loadExistingRepos();
+  if (id === 'files')    loadFileTree();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -485,7 +598,7 @@ function renderSbRepos(repos) {
   const c = document.getElementById('sb-repos');
   c.innerHTML = repos.length ? repos.map(r => `
     <div class="sb-item${r.name === state.repo ? ' active' : ''}" onclick="selectRepo('${r.name}')">
-      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
+      <svg class="icon" width="14" height="14" viewBox="0 0 24 24">${ICONS.folder}</svg>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span>
       <span style="font-size:10px;color:var(--fg2);flex-shrink:0">${r.branch || ''}</span>
     </div>
@@ -497,7 +610,6 @@ async function selectRepo(name) {
   state.repo = name;
   document.getElementById('repo-select').value = name;
   const badge = document.getElementById('branch-badge');
-  // Load status to get branch
   try {
     state.status = await GET(`/api/repos/${name}/status`);
     state.branch = state.status.current;
@@ -505,14 +617,11 @@ async function selectRepo(name) {
     badge.classList.remove('hidden');
     document.getElementById('changes-badge').textContent = state.status.files?.length || 0;
     document.getElementById('changes-badge').classList.toggle('hidden', !state.status.files?.length);
-  } catch (e) {
-    badge.classList.add('hidden');
-  }
-  // Reconnect terminal to new repo
+  } catch (e) { badge.classList.add('hidden'); }
   termConnect(name);
   showPanel('changes');
   renderSbRepos(state.repos);
-  loadRepos(); // refresh list
+  loadRepos();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -527,52 +636,32 @@ function setChangesTab(tab) {
 
 async function loadChanges() {
   if (!state.repo) return;
-  try {
-    state.status = await GET(`/api/repos/${state.repo}/status`);
-    renderChanges();
-  } catch (e) {
-    document.getElementById('changes-content').innerHTML = '';
-    showAlert('changes-alert', 'error', e.message);
-  }
+  try { state.status = await GET(`/api/repos/${state.repo}/status`); renderChanges(); }
+  catch (e) { document.getElementById('changes-content').innerHTML = ''; showAlert('changes-alert', 'error', e.message); }
 }
 
 function renderChanges() {
   const s = state.status;
   if (!s) return;
   const tab = state.changesTab;
-
-  // Build file arrays
-  const unstaged = [];
-  const staged   = [];
-
+  const unstaged = [], staged = [];
   s.files.forEach(f => {
-    const idx = f.index.trim();
-    const wd  = f.working_dir.trim();
+    const idx = f.index.trim(), wd = f.working_dir.trim();
     if (wd && wd !== ' ')  unstaged.push({ path: f.path, st: wd });
     if (idx && idx !== ' ' && idx !== '?') staged.push({ path: f.path, st: idx });
   });
-  // untracked
   s.not_added?.forEach(p => unstaged.push({ path: p, st: 'U' }));
 
   document.getElementById('tab-unstaged').textContent = `Unstaged (${unstaged.length})`;
   document.getElementById('tab-staged').textContent   = `Staged (${staged.length})`;
 
   const list = tab === 'unstaged' ? unstaged : staged;
-  const isEmpty = list.length === 0;
-
   const btns = tab === 'unstaged'
-    ? `<div class="btn-row">
-        <button class="btn sm primary" onclick="stageAll()">Stage all</button>
-        <button class="btn sm" onclick="stageSelected()">Stage selected</button>
-       </div>`
-    : `<div class="btn-row">
-        <button class="btn sm" onclick="unstageAll()">Unstage all</button>
-        <button class="btn sm" onclick="unstageSelected()">Unstage selected</button>
-        <button class="btn sm primary" onclick="showPanel('commit')" style="margin-left:auto">Commit staged →</button>
-       </div>`;
+    ? `<div class="btn-row"><button class="btn sm primary" onclick="stageAll()">Stage all</button><button class="btn sm" onclick="stageSelected()">Stage selected</button></div>`
+    : `<div class="btn-row"><button class="btn sm" onclick="unstageAll()">Unstage all</button><button class="btn sm" onclick="unstageSelected()">Unstage selected</button><button class="btn sm primary" onclick="showPanel('commit')" style="margin-left:auto">Commit staged →</button></div>`;
 
-  document.getElementById('changes-content').innerHTML = isEmpty
-    ? `<div class="empty">${tab === 'unstaged' ? 'Working tree clean — no changes' : 'Nothing staged'}</div>` + btns
+  document.getElementById('changes-content').innerHTML = !list.length
+    ? `<div class="empty">${tab === 'unstaged' ? 'Working tree clean' : 'Nothing staged'}</div>` + btns
     : `<ul class="file-list" id="file-list">
         ${list.map(f => `
           <li class="file-item" onclick="this.classList.toggle('selected')" title="${f.path}">
@@ -580,61 +669,43 @@ function renderChanges() {
             <span class="file-name">${f.path.split('/').pop()}</span>
             <span class="file-path">${f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')+1) : ''}</span>
             <button class="btn sm" onclick="event.stopPropagation();quickDiff('${f.path}',${tab==='staged'})" title="View diff">~</button>
-          </li>
-        `).join('')}
+          </li>`).join('')}
        </ul>` + btns;
 
-  // update badge
   const total = unstaged.length + staged.length;
   document.getElementById('changes-badge').textContent = total;
   document.getElementById('changes-badge').classList.toggle('hidden', total === 0);
 }
 
-function getSelectedFiles() {
-  // Returns full paths of selected file-items (same logic as getCheckedPaths)
-  return getCheckedPaths();
-}
-
 function getCheckedPaths() {
   return [...document.querySelectorAll('#file-list .file-item.selected')]
-    .map(el => {
-      const name = el.querySelector('.file-name').textContent;
-      const dir  = el.querySelector('.file-path').textContent;
-      return dir + name;
-    });
+    .map(el => el.querySelector('.file-path').textContent + el.querySelector('.file-name').textContent);
 }
+function getSelectedFiles() { return getCheckedPaths(); }
 
 async function stageAll() {
   if (!state.repo) return;
   try { await POST(`/api/repos/${state.repo}/add`, { files: ['.'] }); await loadChanges(); }
   catch (e) { showAlert('changes-alert', 'error', e.message); }
 }
-
 async function stageSelected() {
-  const files = getCheckedPaths();
-  if (!files.length) { stageAll(); return; }
+  const files = getCheckedPaths(); if (!files.length) { stageAll(); return; }
   try { await POST(`/api/repos/${state.repo}/add`, { files }); await loadChanges(); }
   catch (e) { showAlert('changes-alert', 'error', e.message); }
 }
-
 async function unstageAll() {
   if (!state.repo) return;
   try { await POST(`/api/repos/${state.repo}/reset`, {}); await loadChanges(); }
   catch (e) { showAlert('changes-alert', 'error', e.message); }
 }
-
 async function unstageSelected() {
-  const files = getCheckedPaths();
-  if (!files.length) { unstageAll(); return; }
+  const files = getCheckedPaths(); if (!files.length) { unstageAll(); return; }
   try { await POST(`/api/repos/${state.repo}/reset`, { files }); await loadChanges(); }
   catch (e) { showAlert('changes-alert', 'error', e.message); }
 }
 
 function quickDiff(filePath, staged) {
-  // Can't set diff-file-select.value before options exist (loadDiffFiles is async).
-  // Store what we want and let loadDiffFiles pick it up once options are built.
-  state._pendingDiffFile   = filePath;
-  state._pendingDiffStaged = staged;
+  state._pendingDiffFile = filePath; state._pendingDiffStaged = staged;
   showPanel('diff');
 }
 
@@ -648,23 +719,17 @@ async function loadDiffFiles() {
   const sel = document.getElementById('diff-file-select');
   const prev = sel.value;
   sel.innerHTML = '<option value="">all changed files</option>' + files.map(f => `<option value="${f}">${f}</option>`).join('');
-
-  // quickDiff sets these before options exist; apply them now that options are populated
   if (state._pendingDiffFile != null) {
     if (files.includes(state._pendingDiffFile)) sel.value = state._pendingDiffFile;
     document.getElementById('diff-staged').checked = !!state._pendingDiffStaged;
-    state._pendingDiffFile  = null;
-    state._pendingDiffStaged = false;
-  } else if (prev && files.includes(prev)) {
-    sel.value = prev;
-  }
-
+    state._pendingDiffFile = null; state._pendingDiffStaged = false;
+  } else if (prev && files.includes(prev)) { sel.value = prev; }
   if (sel.value) loadDiff();
 }
 
 async function loadDiff() {
   if (!state.repo) return;
-  const file   = document.getElementById('diff-file-select').value;
+  const file = document.getElementById('diff-file-select').value;
   const staged = document.getElementById('diff-staged').checked;
   try {
     const params = new URLSearchParams({ staged: staged ? 'true' : 'false' });
@@ -677,25 +742,19 @@ async function loadDiff() {
 }
 
 function renderDiff(raw) {
-  let html = '';
-  let inFile = false;
+  let html = '', inFile = false;
   raw.split('\n').forEach(line => {
     if (line.startsWith('diff --git')) {
       if (inFile) html += '</div>';
       const fname = line.replace('diff --git a/', '').split(' b/')[0];
-      html += `<div class="diff-file"><div class="diff-file-header">${escHtml(fname)}</div>`;
-      inFile = true;
+      html += `<div class="diff-file"><div class="diff-file-header">${escHtml(fname)}</div>`; inFile = true;
     } else if (line.startsWith('@@')) {
       html += `<div class="diff-hunk-header">${escHtml(line)}</div>`;
     } else if (line.startsWith('---') || line.startsWith('+++') || line.startsWith('index ') || line.startsWith('new file') || line.startsWith('deleted file')) {
-      // skip these header lines
-    } else if (line.startsWith('+')) {
-      html += `<div class="diff-line diff-add">${escHtml(line)}</div>`;
-    } else if (line.startsWith('-')) {
-      html += `<div class="diff-line diff-del">${escHtml(line)}</div>`;
-    } else {
-      html += `<div class="diff-line diff-ctx">${escHtml(line)}</div>`;
-    }
+      // skip
+    } else if (line.startsWith('+')) { html += `<div class="diff-line diff-add">${escHtml(line)}</div>`;
+    } else if (line.startsWith('-')) { html += `<div class="diff-line diff-del">${escHtml(line)}</div>`;
+    } else { html += `<div class="diff-line diff-ctx">${escHtml(line)}</div>`; }
   });
   if (inFile) html += '</div>';
   const adds = (raw.match(/^\+[^+]/mg) || []).length;
@@ -709,8 +768,8 @@ function renderDiff(raw) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function doCommit() {
   if (!state.repo) return showAlert('commit-alert', 'error', 'No repo selected');
-  const msg   = document.getElementById('commit-msg').value.trim();
-  const name  = document.getElementById('commit-author').value.trim();
+  const msg = document.getElementById('commit-msg').value.trim();
+  const name = document.getElementById('commit-author').value.trim();
   const email = document.getElementById('commit-email').value.trim();
   if (!msg) return showAlert('commit-alert', 'error', 'Commit message is required');
   try {
@@ -722,13 +781,10 @@ async function doCommit() {
     document.getElementById('branch-badge').textContent = state.branch;
   } catch (e) { showAlert('commit-alert', 'error', e.message); }
 }
-
 async function doAddAll() {
   if (!state.repo) return;
-  try {
-    await POST(`/api/repos/${state.repo}/add`, { files: ['.'] });
-    doCommit();
-  } catch (e) { showAlert('commit-alert', 'error', e.message); }
+  try { await POST(`/api/repos/${state.repo}/add`, { files: ['.'] }); doCommit(); }
+  catch (e) { showAlert('commit-alert', 'error', e.message); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -737,7 +793,7 @@ async function doAddAll() {
 async function loadHistory() {
   if (!state.repo) return;
   const el = document.getElementById('history-content');
-  el.innerHTML = '<div class="empty"><span class="spinner"></span> Loading...</div>';
+  el.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
     const { all } = await GET(`/api/repos/${state.repo}/log`);
     if (!all.length) { el.innerHTML = '<div class="empty">No commits yet</div>'; return; }
@@ -748,9 +804,8 @@ async function loadHistory() {
           <div class="commit-msg" title="${escHtml(c.message)}">${escHtml(c.message)}</div>
           <div class="commit-meta">${escHtml(c.author_name)} &middot; ${new Date(c.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
         </div>
-        <span class="commit-sha" title="Click to copy" onclick="navigator.clipboard.writeText('${c.hash}')" >${c.hash.slice(0,7)}</span>
-      </li>
-    `).join('')}</ul>`;
+        <span class="commit-sha" title="Click to copy" onclick="navigator.clipboard.writeText('${c.hash}')">${c.hash.slice(0,7)}</span>
+      </li>`).join('')}</ul>`;
   } catch (e) { el.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`; }
 }
 
@@ -763,15 +818,14 @@ async function loadBranches() {
   try {
     const data = await GET(`/api/repos/${state.repo}/branches`);
     const current = data.current;
-    const locals  = data.branches ? Object.values(data.branches) : [];
+    const locals = data.branches ? Object.values(data.branches) : [];
     el.innerHTML = `<div style="margin-bottom:8px;font-size:11px;color:var(--fg1)">Current: <span style="color:var(--green)">${escHtml(current)}</span></div>
       ${locals.map(b => `
         <div class="branch-item${b.current ? ' current' : ''}">
-          <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M17 4c-1.66 0-3 1.34-3 3 0 1.18.68 2.2 1.67 2.72-.03.12-.04.24-.04.36-.37 1.6-1.77 3.06-3.63 4-1.86-.94-3.26-2.4-3.63-4-.01-.12-.03-.24-.04-.36C9.32 9.2 10 8.18 10 7c0-1.66-1.34-3-3-3S4 5.34 4 7c0 1.18.68 2.2 1.67 2.72.05.44.14.88.28 1.29C6.62 13.23 8.38 15 10.5 16.16V20H8v2h8v-2h-2.5v-3.84C15.62 15 17.38 13.23 18.05 11c.14-.41.23-.85.28-1.29C19.32 9.2 20 8.18 20 7c0-1.66-1.34-3-3-3z"/></svg>
+          <svg class="icon" viewBox="0 0 24 24">${ICONS.branch}</svg>
           <span class="branch-name">${escHtml(b.name)}</span>
           ${b.current ? '<span style="font-size:10px;color:var(--green)">current</span>' : `<button class="btn sm" onclick="checkoutBranch('${escHtml(b.name)}')">Checkout</button>`}
-        </div>
-      `).join('')}`;
+        </div>`).join('')}`;
   } catch (e) { el.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`; }
 }
 
@@ -779,24 +833,19 @@ async function checkoutBranch(name) {
   if (!state.repo) return;
   try {
     await POST(`/api/repos/${state.repo}/checkout`, { branch: name });
-    state.branch = name;
-    document.getElementById('branch-badge').textContent = name;
-    termSend(`git checkout ${name}\n`);
-    loadBranches();
+    state.branch = name; document.getElementById('branch-badge').textContent = name;
+    termSend(`git checkout ${name}\n`); loadBranches();
   } catch (e) { alert(e.message); }
 }
 
 async function createBranch() {
   if (!state.repo) return;
-  const name = document.getElementById('new-branch-name').value.trim();
-  if (!name) return;
+  const name = document.getElementById('new-branch-name').value.trim(); if (!name) return;
   try {
     await POST(`/api/repos/${state.repo}/checkout`, { branch: name, create: true });
-    state.branch = name;
-    document.getElementById('branch-badge').textContent = name;
+    state.branch = name; document.getElementById('branch-badge').textContent = name;
     document.getElementById('new-branch-name').value = '';
-    termSend(`git checkout -b ${name}\n`);
-    loadBranches();
+    termSend(`git checkout -b ${name}\n`); loadBranches();
   } catch (e) { alert(e.message); }
 }
 
@@ -805,16 +854,16 @@ async function createBranch() {
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadPushStatus() {
   if (!state.repo || !state.status) return;
-  const el = document.getElementById('push-status');
   const s = state.status;
-  el.innerHTML = `Branch: <span style="color:var(--green)">${escHtml(s.current||'')}</span>
-    &nbsp;·&nbsp; Tracking: <span style="color:var(--fg0)">${escHtml(s.tracking||'origin/'+s.current)}</span>
-    &nbsp;·&nbsp; <span style="color:var(--blue)">↑${s.ahead||0}</span> <span style="color:var(--orange)">↓${s.behind||0}</span>`;
+  document.getElementById('push-status').innerHTML =
+    `Branch: <span style="color:var(--green)">${escHtml(s.current||'')}</span>
+     &nbsp;·&nbsp; Tracking: <span style="color:var(--fg0)">${escHtml(s.tracking||'origin/'+s.current)}</span>
+     &nbsp;·&nbsp; <span style="color:var(--blue)">↑${s.ahead||0}</span> <span style="color:var(--orange)">↓${s.behind||0}</span>`;
 }
 
 async function doPush() {
   if (!state.repo) return showAlert('push-alert', 'error', 'No repo selected');
-  const token  = document.getElementById('push-token').value.trim();
+  const token = document.getElementById('push-token').value.trim();
   const remote = document.getElementById('push-remote').value.trim() || 'origin';
   const branch = document.getElementById('push-branch').value.trim();
   try {
@@ -826,14 +875,13 @@ async function doPush() {
 
 async function doPull() {
   if (!state.repo) return showAlert('push-alert', 'error', 'No repo selected');
-  const token  = document.getElementById('push-token').value.trim();
+  const token = document.getElementById('push-token').value.trim();
   const remote = document.getElementById('push-remote').value.trim() || 'origin';
   const branch = document.getElementById('push-branch').value.trim();
   try {
     const r = await POST(`/api/repos/${state.repo}/pull`, { token, remote, branch: branch || undefined });
     const changes = r.summary ? `+${r.summary.insertions} -${r.summary.deletions}` : 'up to date';
-    showAlert('push-alert', 'success', `Pulled from ${remote}. ${changes}`);
-    loadChanges();
+    showAlert('push-alert', 'success', `Pulled from ${remote}. ${changes}`); loadChanges();
   } catch (e) { showAlert('push-alert', 'error', e.message); }
 }
 
@@ -846,7 +894,7 @@ async function fetchRemote() {
     await POST(`/api/repos/${state.repo}/fetch`, { token });
     state.status = await GET(`/api/repos/${state.repo}/status`);
   } catch (e) { console.error(e); }
-  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> Fetch';
+  btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px">${ICONS.refresh}</svg> Fetch`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -858,16 +906,16 @@ async function doClone() {
   const token = document.getElementById('clone-token').value.trim();
   if (!url) return showAlert('clone-alert', 'error', 'URL is required');
   const btn = document.getElementById('clone-btn');
-  btn.innerHTML = '<span class="spinner"></span> Cloning...';
-  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Cloning...'; btn.disabled = true;
   try {
     const { name: repoName } = await POST('/api/clone', { url, name: name || undefined, token: token || undefined });
-    showAlert('clone-alert', 'success', `Cloned successfully as "${repoName}"`);
+    // Track this repo so it gets cleaned up when the user leaves
+    state.sessionRepos.push(repoName);
+    showAlert('clone-alert', 'success', `Cloned as "${repoName}" — will be removed when you leave`);
     document.getElementById('clone-url').value = '';
-    await loadRepos();
-    selectRepo(repoName);
+    await loadRepos(); selectRepo(repoName);
   } catch (e) { showAlert('clone-alert', 'error', e.message); }
-  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Clone';
+  btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px">${ICONS.download}</svg> Clone`;
   btn.disabled = false;
 }
 
@@ -884,8 +932,7 @@ async function loadExistingRepos() {
           <button class="btn sm primary" onclick="selectRepo('${r.name}')">Open</button>
           <button class="btn sm danger" onclick="deleteRepo('${r.name}')">Delete</button>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
   } catch {}
 }
 
@@ -893,9 +940,15 @@ async function deleteRepo(name) {
   if (!confirm(`Delete repo "${name}" from the server? This cannot be undone.`)) return;
   try {
     await DEL(`/api/repos/${name}`);
-    if (state.repo === name) { state.repo = null; document.getElementById('repo-select').value = ''; document.getElementById('branch-badge').classList.add('hidden'); showPanel('welcome'); }
-    await loadRepos();
-    loadExistingRepos();
+    // Remove from session tracking too
+    state.sessionRepos = state.sessionRepos.filter(r => r !== name);
+    if (state.repo === name) {
+      state.repo = null;
+      document.getElementById('repo-select').value = '';
+      document.getElementById('branch-badge').classList.add('hidden');
+      showPanel('welcome');
+    }
+    await loadRepos(); loadExistingRepos();
   } catch (e) { alert(e.message); }
 }
 
@@ -907,82 +960,42 @@ let termOpen = true;
 
 function initTerminal() {
   term = new Terminal({
-    theme: {
-      background: '#000000', foreground: '#cccccc',
-      cursor: '#4fc1ff', cursorAccent: '#000',
-      selection: '#264f78',
-    },
+    theme: { background: '#000000', foreground: '#e6edf3', cursor: '#8b5cf6', cursorAccent: '#000', selection: '#1c1033' },
     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-    fontSize: 13, lineHeight: 1.4,
-    scrollback: 2000,
-    allowProposedApi: true,
+    fontSize: 13, lineHeight: 1.4, scrollback: 2000, allowProposedApi: true,
   });
   fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
   term.open(document.getElementById('xterm-container'));
   fitAddon.fit();
-
-  term.onData(data => {
-    if (termWs?.readyState === WebSocket.OPEN)
-      termWs.send(JSON.stringify({ type: 'input', data }));
-  });
-
-  new ResizeObserver(() => { try { fitAddon.fit(); sendResize(); } catch {} })
-    .observe(document.getElementById('xterm-container'));
-
+  term.onData(data => { if (termWs?.readyState === WebSocket.OPEN) termWs.send(JSON.stringify({ type: 'input', data })); });
+  new ResizeObserver(() => { try { fitAddon.fit(); sendResize(); } catch {} }).observe(document.getElementById('xterm-container'));
   termConnect(null);
 }
 
 function termConnect(repo) {
   if (termWs) { try { termWs.close(); } catch {} }
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const cols  = term?.cols || 80;
-  const rows  = term?.rows || 24;
-  const url   = `${proto}//${location.host}/terminal?${repo ? 'repo='+encodeURIComponent(repo)+'&' : ''}cols=${cols}&rows=${rows}`;
+  const cols = term?.cols || 80, rows = term?.rows || 24;
+  const url = `${proto}//${location.host}/terminal?${repo ? 'repo='+encodeURIComponent(repo)+'&' : ''}cols=${cols}&rows=${rows}`;
   termWs = new WebSocket(url);
-
   termWs.onmessage = e => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'output') term.write(msg.data);
     if (msg.type === 'exit')   term.write(`\r\n\x1b[33m[process exited with code ${msg.exitCode}]\x1b[0m\r\n`);
     if (msg.type === 'error')  term.write(`\r\n\x1b[31m[error: ${msg.message}]\x1b[0m\r\n`);
   };
-
-  termWs.onopen = () => {
-    sendResize();
-    if (repo) term.write(`\x1b[2m[connected to ${repo}]\x1b[0m\r\n`);
-  };
-
-  termWs.onclose = () => {
-    setTimeout(() => { if (state.repo) termConnect(state.repo); }, 3000);
-  };
+  termWs.onopen  = () => { sendResize(); if (repo) term.write(`\x1b[2m[connected to ${repo}]\x1b[0m\r\n`); };
+  termWs.onclose = () => { setTimeout(() => { if (state.repo) termConnect(state.repo); }, 3000); };
 }
 
-function sendResize() {
-  if (termWs?.readyState === WebSocket.OPEN && term) {
-    termWs.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
-  }
-}
+function sendResize() { if (termWs?.readyState === WebSocket.OPEN && term) termWs.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows })); }
+function termSend(text) { if (termWs?.readyState === WebSocket.OPEN) termWs.send(JSON.stringify({ type: 'input', data: text })); }
 
-function termSend(text) {
-  if (termWs?.readyState === WebSocket.OPEN) {
-    termWs.send(JSON.stringify({ type: 'input', data: text }));
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Terminal resize handle
-// ─────────────────────────────────────────────────────────────────────────────
 (function initResizer() {
-  const resizer  = document.getElementById('term-resizer');
-  const termWrap = document.getElementById('terminal-wrap');
+  const resizer = document.getElementById('term-resizer'), termWrap = document.getElementById('terminal-wrap');
   let dragging = false, startY, startH;
-
-  resizer.addEventListener('mousedown', e => {
-    dragging = true; startY = e.clientY; startH = termWrap.offsetHeight;
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'ns-resize';
-  });
+  resizer.addEventListener('mousedown', e => { dragging = true; startY = e.clientY; startH = termWrap.offsetHeight; document.body.style.userSelect = 'none'; document.body.style.cursor = 'ns-resize'; });
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
     const newH = Math.max(100, Math.min(window.innerHeight - 100, startH - (e.clientY - startY)));
@@ -990,19 +1003,12 @@ function termSend(text) {
     document.getElementById('xterm-container').style.height = (newH - 40) + 'px';
     try { fitAddon.fit(); sendResize(); } catch {}
   });
-  document.addEventListener('mouseup', () => {
-    if (!dragging) return;
-    dragging = false;
-    document.body.style.userSelect = '';
-    document.body.style.cursor = '';
-  });
+  document.addEventListener('mouseup', () => { if (!dragging) return; dragging = false; document.body.style.userSelect = ''; document.body.style.cursor = ''; });
 })();
 
 function toggleTerminal() {
-  const xterm = document.getElementById('xterm-container');
-  const chevron = document.getElementById('term-chevron');
-  const hint    = document.getElementById('term-hint');
-  const wrap    = document.getElementById('terminal-wrap');
+  const xterm = document.getElementById('xterm-container'), chevron = document.getElementById('term-chevron');
+  const hint = document.getElementById('term-hint'), wrap = document.getElementById('terminal-wrap');
   termOpen = !termOpen;
   xterm.style.display = termOpen ? '' : 'none';
   document.getElementById('term-resizer').style.display = termOpen ? '' : 'none';
@@ -1021,9 +1027,9 @@ function escHtml(s) {
 
 function showAlert(containerId, type, message) {
   const icons = {
-    success: '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
-    error:   '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
-    info:    '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+    success: `<svg class="icon" viewBox="0 0 24 24">${ICONS.check}</svg>`,
+    error:   `<svg class="icon" viewBox="0 0 24 24">${ICONS.alertX}</svg>`,
+    info:    `<svg class="icon" viewBox="0 0 24 24">${ICONS.info}</svg>`,
   };
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -1034,17 +1040,13 @@ function showAlert(containerId, type, message) {
 // ─────────────────────────────────────────────────────────────────────────────
 // File browser / editor
 // ─────────────────────────────────────────────────────────────────────────────
-let cmEditor   = null;
-let editorFile = null;
-let editorDirty = false;
+let cmEditor = null, editorFile = null, editorDirty = false;
 
-// Map common extensions → CodeMirror mode
 const EXT_MODE = {
   js:'javascript', jsx:'javascript', mjs:'javascript', cjs:'javascript',
   ts:'javascript', tsx:'javascript',
   json: { name:'javascript', json:true },
-  html:'htmlmixed', htm:'htmlmixed',
-  xml:'xml', svg:'xml',
+  html:'htmlmixed', htm:'htmlmixed', xml:'xml', svg:'xml',
   css:'css', scss:'css', less:'css',
   py:'python', pyw:'python',
   md:'markdown', markdown:'markdown',
@@ -1056,32 +1058,269 @@ function modeFor(filename) {
   if (!filename) return 'text/plain';
   const lower = filename.toLowerCase();
   if (lower === 'dockerfile' || lower.startsWith('dockerfile.')) return 'shell';
-  const ext = lower.split('.').pop();
-  return EXT_MODE[ext] || 'text/plain';
+  return EXT_MODE[lower.split('.').pop()] || 'text/plain';
 }
 
-// Language-tinted file icon
-function fileIcon(name, size = 13) {
-  const ext = (name.split('.').pop() || '').toLowerCase();
-  const tint = {
-    js:'#f7df1e', jsx:'#61dafb', ts:'#3178c6', tsx:'#61dafb',
-    html:'#e34c26', css:'#563d7c', scss:'#c76494',
-    py:'#3572a5', rb:'#cc342d',
-    md:'#4a90d9', json:'#cbcb41',
-    sh:'#89e051', bash:'#89e051', yaml:'#cb171e', yml:'#cb171e',
-    png:'#a074c4', jpg:'#a074c4', jpeg:'#a074c4', gif:'#a074c4',
-    svg:'#ffb13b', pdf:'#e74c3c', txt:'#aaaaaa',
-  }[ext] || '#858585';
-  return `<svg width="${size}" height="${size}" fill="${tint}" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>`;
+// ── File icons ────────────────────────────────────────────────────────────────
+// Each returns an SVG string sized to `size` pixels.
+
+function _ic(size, content) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="flex-shrink:0" xmlns="http://www.w3.org/2000/svg">${content}</svg>`;
 }
 
-function dirIcon(size = 13) {
-  return `<svg width="${size}" height="${size}" fill="var(--yellow)" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+// Coloured document shape — the fallback for most file types
+function _doc(size, color) {
+  return _ic(size, `<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="${color}" opacity=".9"/><path d="M13 2v7h7" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>`);
+}
+
+// Docker whale with stacked containers  🐳
+function _dockerIcon(size) {
+  return _ic(size, `
+    <g fill="#2496ed">
+      <rect x="6"  y="2"  width="3.5" height="3" rx="0.5"/>
+      <rect x="2"  y="6"  width="3.5" height="3" rx="0.5"/>
+      <rect x="6"  y="6"  width="3.5" height="3" rx="0.5"/>
+      <rect x="10" y="6"  width="3.5" height="3" rx="0.5"/>
+      <rect x="2"  y="10" width="3.5" height="3" rx="0.5"/>
+      <rect x="6"  y="10" width="3.5" height="3" rx="0.5"/>
+      <rect x="10" y="10" width="3.5" height="3" rx="0.5"/>
+      <rect x="14" y="10" width="3.5" height="3" rx="0.5"/>
+      <path d="M21.5 13.8c-.5-1.5-2.2-1.4-3.2-.8-.3-2.2-2.3-2.6-3.1-2.6H1.8C1 14.3 1.5 19 7 19h9c3.5 0 5.5-2 5.5-4.2 0-.3 0-.7-.1-1z"/>
+    </g>
+    <path d="M17.5 20.5c1.5 2 4.2 1.5 4.7-.2" stroke="#2496ed" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <circle cx="19.5" cy="13" r="1" fill="white" opacity=".75"/>`);
+}
+
+// React atom (JSX / TSX)
+function _reactIcon(size, color) {
+  return _ic(size, `
+    <circle cx="12" cy="12" r="2" fill="${color}"/>
+    <ellipse cx="12" cy="12" rx="10" ry="3.5" fill="none" stroke="${color}" stroke-width="1.1"/>
+    <ellipse cx="12" cy="12" rx="10" ry="3.5" fill="none" stroke="${color}" stroke-width="1.1" transform="rotate(60 12 12)"/>
+    <ellipse cx="12" cy="12" rx="10" ry="3.5" fill="none" stroke="${color}" stroke-width="1.1" transform="rotate(120 12 12)"/>`);
+}
+
+// Image / picture icon
+function _imgIcon(size) {
+  return _ic(size, `
+    <rect x="2" y="4" width="20" height="16" rx="2" fill="#a78bfa" opacity=".85"/>
+    <circle cx="8" cy="9" r="2" fill="rgba(255,255,255,.7)"/>
+    <path d="M2 17l5-5 3 3 4-5 6 7H2z" fill="rgba(255,255,255,.45)"/>`);
+}
+
+// Markdown — M↓
+function _mdIcon(size) {
+  return _ic(size, `
+    <rect x="1" y="4" width="22" height="16" rx="2" fill="#4a90d9"/>
+    <text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white" font-family="monospace">MD</text>
+    <path d="M17 13v-4l-2 2-2-2v4" stroke="none" fill="none"/>
+  `);
+}
+
+// Git branch icon (for .gitignore, etc.)
+function _gitIcon(size) {
+  return _ic(size, `
+    <circle cx="7"  cy="6"  r="2.5" fill="#f14e32"/>
+    <circle cx="7"  cy="18" r="2.5" fill="#f14e32"/>
+    <circle cx="17" cy="6"  r="2.5" fill="#f14e32"/>
+    <path d="M7 8.5v7" stroke="#f14e32" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M17 8.5c0 4-2 6-10 6" fill="none" stroke="#f14e32" stroke-width="1.8" stroke-linecap="round"/>`);
+}
+
+// npm cube logo
+function _npmIcon(size) {
+  return _ic(size, `
+    <rect x="1" y="7" width="22" height="10" rx="1" fill="#cb3837"/>
+    <rect x="7"  y="10" width="3" height="4" fill="white"/>
+    <rect x="14" y="10" width="3" height="7" fill="white"/>
+    <text x="12" y="15" text-anchor="middle" font-size="7" font-weight="900" fill="white" font-family="monospace">npm</text>`);
+}
+
+// env / config — lock icon
+function _envIcon(size) {
+  return _ic(size, `
+    <rect x="5" y="10" width="14" height="10" rx="2" fill="#ecd53f"/>
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="#ecd53f" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="12" cy="15" r="1.5" fill="#5a4000"/>`);
+}
+
+// PDF — red doc with text lines
+function _pdfIcon(size) {
+  return _ic(size, `
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="#e74c3c" opacity=".9"/>
+    <path d="M13 2v7h7" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>
+    <text x="12" y="17" text-anchor="middle" font-size="5.5" font-weight="bold" fill="white" font-family="monospace">PDF</text>`);
+}
+
+// Python — two intertwined snakes (blue / yellow), modelled on the real mark
+function _pyIcon(size) {
+  return _ic(size, `
+    <path d="M11.9 1.6c-4.3 0-4 1.9-4 1.9v2h4.1v.6H6.2S3.1 5.7 3.1 10s2.7 4.1 2.7 4.1h1.6v-2s-.1-2.7 2.5-2.7h4s2.5 0 2.5-2.4V4S17 1.6 11.9 1.6z" fill="#3776ab"/>
+    <path d="M12.1 22.3c4.3 0 4-1.9 4-1.9v-2h-4.1v-.6h5.8s3.1.4 3.1-3.9-2.7-4.1-2.7-4.1h-1.6v2s.1 2.7-2.5 2.7h-4s-2.5 0-2.5 2.4V20s-.4 2.3 4.5 2.3z" fill="#ffd43b"/>
+    <circle cx="8.9" cy="3.8" r=".7" fill="#fff"/>
+    <circle cx="15.1" cy="20.1" r=".7" fill="#fff"/>`);
+}
+
+// Rust — gear ring (cogteeth + hub), in rust orange
+function _rustIcon(size) {
+  return _ic(size, `
+    <circle cx="12" cy="12" r="6.6" fill="none" stroke="#ce4a22" stroke-width="1.6"/>
+    <circle cx="12" cy="12" r="2.3" fill="#ce4a22"/>
+    <g fill="#ce4a22">
+      <rect x="11.2" y="2.7" width="1.6" height="2.6" rx="0.5"/>
+      <rect x="11.2" y="18.7" width="1.6" height="2.6" rx="0.5"/>
+      <rect x="2.7" y="11.2" width="2.6" height="1.6" rx="0.5"/>
+      <rect x="18.7" y="11.2" width="2.6" height="1.6" rx="0.5"/>
+      <rect x="5.2" y="5.2" width="1.6" height="2.4" rx="0.5" transform="rotate(45 6 6.4)"/>
+      <rect x="17.2" y="16.4" width="1.6" height="2.4" rx="0.5" transform="rotate(45 18 17.6)"/>
+      <rect x="17.2" y="5.2" width="1.6" height="2.4" rx="0.5" transform="rotate(-45 18 6.4)"/>
+      <rect x="5.2" y="16.4" width="1.6" height="2.4" rx="0.5" transform="rotate(-45 6 17.6)"/>
+    </g>`);
+}
+
+// Go — gopher-blue capsule badge
+function _goIcon(size) {
+  return _ic(size, `
+    <rect x="1" y="6.5" width="22" height="11" rx="3" fill="#00ACD7"/>
+    <text x="12" y="14.7" text-anchor="middle" font-size="7.5" font-weight="800" fill="white" font-family="monospace">GO</text>`);
+}
+
+// Java — coffee cup with steam
+function _javaIcon(size) {
+  return _ic(size, `
+    <path d="M6.3 9.5h11.4v5.2a3.7 3.7 0 0 1-3.7 3.7H10a3.7 3.7 0 0 1-3.7-3.7Z" fill="#ea2d2e"/>
+    <path d="M17.6 10.8c1.8-.2 3.1.6 3.1 2s-1.5 2.2-3.3 2" fill="none" stroke="#ea2d2e" stroke-width="1.3"/>
+    <ellipse cx="12" cy="20.3" rx="6" ry="1.1" fill="none" stroke="#ea2d2e" stroke-width="1"/>
+    <path d="M9.5 4.3c-.6.8-.4 1.4.2 1.9M13 3.7c-.6.8-.4 1.6.2 2.1" fill="none" stroke="#f0a35b" stroke-width="1.1" stroke-linecap="round"/>`);
+}
+
+// Ruby — faceted gem
+function _rubyIcon(size) {
+  return _ic(size, `
+    <path d="M12 2.8 19.4 8 12 21.2 4.6 8Z" fill="#cc342d"/>
+    <path d="M4.6 8h14.8L12 9.7Z" fill="#ffffff" opacity=".22"/>
+    <path d="M12 9.7 19.4 8 12 21.2Z" fill="#000000" opacity=".12"/>`);
+}
+
+// PHP — indigo pill badge
+function _phpIcon(size) {
+  return _ic(size, `
+    <ellipse cx="12" cy="12" rx="11" ry="7.2" fill="#777bb3"/>
+    <text x="12" y="14.7" text-anchor="middle" font-size="6.3" font-weight="800" fill="white" font-family="monospace">PHP</text>`);
+}
+
+// Vue — green chevron mark
+function _vueIcon(size) {
+  return _ic(size, `
+    <path d="M2 4h4.1L12 13.6 17.9 4H22L12 21z" fill="#4fc08d"/>
+    <path d="M7.5 4h3l1.5 2.5L13.5 4h3L12 11.4z" fill="#35495e"/>`);
+}
+
+// C / C++ / C# — circular badge with the language letter(s)
+function _cFamilyIcon(size, label, color) {
+  return _ic(size, `
+    <circle cx="12" cy="12" r="10" fill="${color}"/>
+    <text x="12" y="${label.length > 1 ? 15.3 : 16}" text-anchor="middle" font-size="${label.length > 1 ? 7 : 10}" font-weight="800" fill="white" font-family="monospace">${label}</text>`);
+}
+
+// Folder (closed / open variants, line-icon style filled)
+function dirIcon(size = 16, open = false) {
+  return open
+    ? _ic(size, `<path d="M3.5 7.7c0-.9.7-1.6 1.6-1.6h4.3c.5 0 1 .2 1.3.6l.9 1h6.3c.9 0 1.6.7 1.6 1.6v.4H7c-.8 0-1.5.6-1.6 1.4L4 17.4c-.3-.3-.5-.7-.5-1.2Z" fill="#dca54c" opacity=".95"/><path d="M5.7 17.3 7.1 11a1.7 1.7 0 0 1 1.6-1.3H20l-1.5 6.6a1.7 1.7 0 0 1-1.6 1.3H7.3a1.7 1.7 0 0 1-1.6-2.1Z" fill="#f0bb5c"/>`)
+    : _ic(size, `<path d="M3.5 7.2c0-.9.7-1.7 1.7-1.7h4.1c.5 0 1 .2 1.3.6l1 1.1h6.2c.9 0 1.7.8 1.7 1.7v8.4c0 .9-.8 1.7-1.7 1.7H5.2c-.9 0-1.7-.8-1.7-1.7Z" fill="#e3b341" opacity=".95"/>`);
+}
+
+// Main dispatch — maps filenames / extensions to icons
+function fileIcon(name, size = 14) {
+  const lower = (name || '').toLowerCase();
+  const base  = lower.split('/').pop();
+  const ext   = base.includes('.') ? base.split('.').pop() : '';
+
+  // ── Special filenames ──
+  if (base === 'dockerfile' || base.startsWith('dockerfile.') ||
+      base === 'docker-compose.yml' || base === 'docker-compose.yaml' ||
+      base === '.dockerignore') return _dockerIcon(size);
+
+  if (base === 'package.json' || base === 'package-lock.json' || base === '.npmrc' || base === '.npmignore')
+    return _npmIcon(size);
+
+  if (base === '.gitignore' || base === '.gitattributes' || base === '.gitmodules' || base === '.gitconfig')
+    return _gitIcon(size);
+
+  if (base.startsWith('.env') || base === '.env')
+    return _envIcon(size);
+
+  // ── By extension ──
+  const EXT_COLOR = {
+    // JavaScript
+    js:   '#f7df1e', mjs:  '#f7df1e', cjs:  '#f7df1e',
+    // TypeScript
+    ts:   '#3178c6',
+    // Web
+    html: '#e34c26', htm:  '#e34c26',
+    css:  '#264de4', scss: '#c76494', sass: '#c76494', less: '#2a4f77',
+    // Data
+    json: '#cbcb41', jsonc:'#cbcb41', toml:'#9c4221',
+    yaml: '#cb171e', yml:  '#cb171e',
+    xml:  '#f60a00',
+    // Docs
+    md:   '#4a90d9', markdown:'#4a90d9', txt: '#aaaaaa', rst: '#888',
+    // Shell / scripting
+    sh:   '#89e051', bash: '#89e051', zsh: '#89e051', fish:'#89e051',
+    // Systems
+    rs:   '#ce4a22', go:   '#00ADD8', c: '#555599', h: '#555599',
+    cpp:  '#f34b7d', cc:   '#f34b7d', cxx:'#f34b7d',
+    cs:   '#178600', java: '#b07219', kt: '#A97BFF', swift:'#ffac45',
+    // Scripting
+    rb:   '#cc342d', php:  '#777bb3', py: '#3572a5', pyw:  '#3572a5',
+    lua:  '#000080', ex:   '#6e4a7e', exs:'#6e4a7e',
+    dart: '#0175c2', r: '#276dc3',
+    // Web frameworks
+    vue:    '#4FC08D', svelte:'#ff3e00',
+    // SVG / images
+    svg:  '#ffb13b',
+    png:  '#a78bfa', jpg: '#a78bfa', jpeg:'#a78bfa', gif:'#a78bfa',
+    webp: '#a78bfa', ico: '#a78bfa', bmp: '#a78bfa', tiff:'#a78bfa',
+    // Misc
+    pdf:  '_pdf', lock:'#6d8086', sql:'#dad8d8', db:'#dad8d8',
+    zip:  '#eca517', tar:'#eca517', gz: '#eca517', rar:'#eca517',
+    ttf:  '#6d8086', woff:'#6d8086', woff2:'#6d8086',
+  };
+
+  // React flavors get the atom icon
+  if (ext === 'jsx') return _reactIcon(size, '#61dafb');
+  if (ext === 'tsx') return _reactIcon(size, '#3178c6');
+
+  // Real per-language marks
+  if (ext === 'py' || ext === 'pyw') return _pyIcon(size);
+  if (ext === 'rs') return _rustIcon(size);
+  if (ext === 'go') return _goIcon(size);
+  if (ext === 'java' || ext === 'class' || ext === 'jar') return _javaIcon(size);
+  if (ext === 'rb') return _rubyIcon(size);
+  if (ext === 'php') return _phpIcon(size);
+  if (ext === 'vue') return _vueIcon(size);
+  if (ext === 'c' || ext === 'h') return _cFamilyIcon(size, 'C', '#5c6bc0');
+  if (ext === 'cpp' || ext === 'cc' || ext === 'cxx' || ext === 'hpp') return _cFamilyIcon(size, 'C++', '#5c6bc0');
+  if (ext === 'cs') return _cFamilyIcon(size, 'C#', '#33652f');
+
+  // Images → picture icon
+  if (['png','jpg','jpeg','gif','webp','ico','bmp','tiff','svg'].includes(ext)) return _imgIcon(size);
+
+  // PDF
+  if (ext === 'pdf') return _pdfIcon(size);
+
+  // Markdown
+  if (ext === 'md' || ext === 'markdown') return _mdIcon(size);
+
+  const color = EXT_COLOR[ext];
+  if (color && color !== '_pdf') return _doc(size, color);
+
+  return _doc(size, '#6e7681'); // unknown file — neutral grey
 }
 
 function chevron() {
-  return `<svg class="ft-chevron" width="10" height="10" fill="currentColor" viewBox="0 0 24 24"
-    style="flex-shrink:0;transition:transform .15s;margin-right:1px"><path d="M10 17l5-5-5-5v10z"/></svg>`;
+  return `<svg class="ft-chevron icon" width="11" height="11" viewBox="0 0 24 24"
+    style="flex-shrink:0;transition:transform .15s;margin-right:1px">${ICONS.chevronRight}</svg>`;
 }
 
 function renderTree(nodes, depth = 0) {
@@ -1091,9 +1330,8 @@ function renderTree(nodes, depth = 0) {
     if (n.type === 'dir') {
       const safeId = 'ftd_' + n.path.replace(/[^a-zA-Z0-9]/g, '_');
       return `
-        <div class="ft-item ft-dir" style="padding-left:${indent}px"
-             onclick="toggleFtDir('${safeId}',this)">
-          ${chevron()}${dirIcon()}
+        <div class="ft-item ft-dir" style="padding-left:${indent}px" onclick="toggleFtDir('${safeId}',this)">
+          ${chevron()}<span class="ft-dir-icon">${dirIcon()}</span>
           <span class="ft-name">${escHtml(n.name)}</span>
         </div>
         <div id="${safeId}" style="display:none">${renderTree(n.children, depth + 1)}</div>`;
@@ -1101,19 +1339,20 @@ function renderTree(nodes, depth = 0) {
     return `<div class="ft-item" style="padding-left:${indent + 13}px"
                onclick="openFile('${escHtml(n.path).replace(/'/g, '&#39;')}')"
                data-ft-path="${escHtml(n.path)}" title="${escHtml(n.path)}">
-              ${fileIcon(n.name)}
+              ${fileIcon(n.name, 16)}
               <span class="ft-name">${escHtml(n.name)}</span>
             </div>`;
   }).join('');
 }
 
 function toggleFtDir(id, el) {
-  const div = document.getElementById(id);
-  if (!div) return;
+  const div = document.getElementById(id); if (!div) return;
   const open = div.style.display !== 'none';
   div.style.display = open ? 'none' : '';
   const ch = el.querySelector('.ft-chevron');
   if (ch) ch.style.transform = open ? '' : 'rotate(90deg)';
+  const ic = el.querySelector('.ft-dir-icon');
+  if (ic) ic.innerHTML = dirIcon(16, !open);
 }
 
 async function loadFileTree() {
@@ -1131,140 +1370,86 @@ async function loadFileTree() {
 async function openFile(filePath) {
   if (!state.repo) return;
   if (editorDirty && !confirm('Discard unsaved changes?')) return;
-
-  // Highlight in tree
   document.querySelectorAll('[data-ft-path]').forEach(el =>
     el.classList.toggle('active', el.dataset.ftPath === filePath));
-
-  const bar  = document.getElementById('editor-bar');
-  const wrap = document.getElementById('cm-wrap');
-  const ph   = document.getElementById('editor-placeholder');
-  const msg  = document.getElementById('editor-msg');
-
-  ph.classList.add('hidden');
-  msg.classList.add('hidden');
-  wrap.classList.add('hidden');
+  const bar = document.getElementById('editor-bar'), wrap = document.getElementById('cm-wrap');
+  const ph = document.getElementById('editor-placeholder'), msg = document.getElementById('editor-msg');
+  ph.classList.add('hidden'); msg.classList.add('hidden'); wrap.classList.add('hidden');
   bar.classList.remove('hidden');
   document.getElementById('editor-filename').textContent = filePath;
   document.getElementById('editor-dirty').classList.add('hidden');
-
   try {
     const res = await GET(`/api/repos/${state.repo}/file?path=${encodeURIComponent(filePath)}`);
     if (res.error) throw new Error(res.error);
-
     if (res.binary || res.tooLarge) {
-      msg.textContent = res.tooLarge
-        ? `File too large to edit (${(res.size / 1024).toFixed(0)} KB)`
-        : 'Binary file — cannot be edited in the browser.';
-      msg.classList.remove('hidden');
-      editorFile = null;
-      return;
+      msg.textContent = res.tooLarge ? `File too large (${(res.size/1024).toFixed(0)} KB)` : 'Binary file — cannot edit in browser.';
+      msg.classList.remove('hidden'); editorFile = null; return;
     }
-
-    editorFile  = filePath;
-    editorDirty = false;
-    wrap.classList.remove('hidden');
-
+    editorFile = filePath; editorDirty = false; wrap.classList.remove('hidden');
     if (!cmEditor) {
-      cmEditor = CodeMirror(wrap, {
-        theme: 'dracula',
-        lineNumbers: true,
-        lineWrapping: false,
-        tabSize: 2,
-        indentWithTabs: false,
-        autofocus: true,
-        extraKeys: { 'Ctrl-S': saveFile, 'Cmd-S': saveFile },
-      });
-      cmEditor.on('change', () => {
-        if (!editorFile) return;
-        editorDirty = true;
-        document.getElementById('editor-dirty').classList.remove('hidden');
-      });
+      cmEditor = CodeMirror(wrap, { theme:'dracula', lineNumbers:true, lineWrapping:false, tabSize:2, indentWithTabs:false, autofocus:true, extraKeys:{ 'Ctrl-S': saveFile, 'Cmd-S': saveFile } });
+      cmEditor.on('change', () => { if (!editorFile) return; editorDirty = true; document.getElementById('editor-dirty').classList.remove('hidden'); });
       new ResizeObserver(() => { try { cmEditor.refresh(); } catch {} }).observe(wrap);
     }
-
     cmEditor.setOption('mode', modeFor(filePath));
     cmEditor.setValue(res.content ?? '');
-    cmEditor.clearHistory();
-    editorDirty = false;
+    cmEditor.clearHistory(); editorDirty = false;
     document.getElementById('editor-dirty').classList.add('hidden');
     setTimeout(() => cmEditor.refresh(), 20);
-
-  } catch (e) {
-    msg.textContent = 'Error loading file: ' + e.message;
-    msg.classList.remove('hidden');
-  }
+  } catch (e) { msg.textContent = 'Error loading file: ' + e.message; msg.classList.remove('hidden'); }
 }
 
 async function saveFile() {
   if (!state.repo || !editorFile || !cmEditor) return;
   const btn = document.getElementById('editor-save-btn');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
+  btn.disabled = true; btn.textContent = 'Saving…';
   try {
     await api('PUT', `/api/repos/${state.repo}/file`, { path: editorFile, content: cmEditor.getValue() });
-    editorDirty = false;
-    document.getElementById('editor-dirty').classList.add('hidden');
+    editorDirty = false; document.getElementById('editor-dirty').classList.add('hidden');
     btn.textContent = '✓ Saved';
     setTimeout(() => { btn.textContent = 'Save'; btn.disabled = false; }, 1800);
-  } catch (e) {
-    btn.textContent = 'Save';
-    btn.disabled = false;
-    showAlert('', 'error', 'Save failed: ' + e.message); // fallback to alert
-    alert('Save failed: ' + e.message);
-  }
+  } catch (e) { btn.textContent = 'Save'; btn.disabled = false; alert('Save failed: ' + e.message); }
 }
 
 async function promptNewFile() {
   if (!state.repo) return;
-  const name = prompt('New file path (relative to repo root):');
-  if (!name) return;
+  const name = prompt('New file path (relative to repo root):'); if (!name) return;
   try {
     await api('PUT', `/api/repos/${state.repo}/file`, { path: name, content: '' });
-    await loadFileTree();
-    openFile(name);
-    // Expand parent folders so the new file is visible
-    expandPathInTree(name);
+    await loadFileTree(); openFile(name); expandPathInTree(name);
   } catch (e) { alert('Could not create file: ' + e.message); }
 }
 
 function expandPathInTree(filePath) {
-  const parts = filePath.split('/');
-  let built = '';
+  const parts = filePath.split('/'); let built = '';
   for (let i = 0; i < parts.length - 1; i++) {
     built = built ? `${built}/${parts[i]}` : parts[i];
     const id = 'ftd_' + built.replace(/[^a-zA-Z0-9]/g, '_');
     const div = document.getElementById(id);
     if (div && div.style.display === 'none') {
       div.style.display = '';
-      // rotate the chevron for that dir
-      const dirEl = div.previousElementSibling;
-      const ch = dirEl?.querySelector('.ft-chevron');
+      const row = div.previousElementSibling;
+      const ch = row?.querySelector('.ft-chevron');
       if (ch) ch.style.transform = 'rotate(90deg)';
+      const ic = row?.querySelector('.ft-dir-icon');
+      if (ic) ic.innerHTML = dirIcon(16, true);
     }
   }
 }
 
 async function handleUpload(input) {
   if (!state.repo || !input.files.length) return;
-  // Upload into the directory of the currently open file, or repo root
-  const destDir = editorFile && editorFile.includes('/')
-    ? editorFile.substring(0, editorFile.lastIndexOf('/'))
-    : '';
-
+  const destDir = editorFile && editorFile.includes('/') ? editorFile.substring(0, editorFile.lastIndexOf('/')) : '';
   const fileArr = await Promise.all([...input.files].map(f => new Promise((res, rej) => {
     const r = new FileReader();
     r.onload  = () => res({ name: f.name, data: r.result.split(',')[1] });
     r.onerror = () => rej(new Error('Read error'));
     r.readAsDataURL(f);
   })));
-
   try {
     const { results } = await POST(`/api/repos/${state.repo}/upload`, { files: fileArr, destDir });
     const failed = results.filter(r => r.error);
-    if (failed.length) {
-      alert('Failed:\n' + failed.map(r => `${r.name}: ${r.error}`).join('\n'));
-    }
+    if (failed.length) alert('Failed:\n' + failed.map(r => `${r.name}: ${r.error}`).join('\n'));
     await loadFileTree();
     const first = results.find(r => r.success);
     if (first) { openFile(first.path); expandPathInTree(first.path); }
@@ -1276,10 +1461,12 @@ async function handleUpload(input) {
 // Boot
 // ─────────────────────────────────────────────────────────────────────────────
 (async function init() {
+  document.getElementById('logo-mark-header').innerHTML = brandMark(22);
+  document.getElementById('logo-mark-welcome').innerHTML = brandMark(30);
+  mountIcons();
   showPanel('welcome');
   setChangesTab('unstaged');
-  try { await loadRepos(); }
-  catch (e) { console.error('Could not load repos', e); }
+  try { await loadRepos(); } catch (e) { console.error('Could not load repos', e); }
   initTerminal();
 })();
 </script>
