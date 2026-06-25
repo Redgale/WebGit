@@ -969,7 +969,13 @@ function initTerminal() {
   term.open(document.getElementById('xterm-container'));
   fitAddon.fit();
   term.onData(data => { if (termWs?.readyState === WebSocket.OPEN) termWs.send(JSON.stringify({ type: 'input', data })); });
-  new ResizeObserver(() => { try { fitAddon.fit(); sendResize(); } catch {} }).observe(document.getElementById('xterm-container'));
+  let resizeTimer;
+new ResizeObserver(() => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    try { fitAddon.fit(); sendResize(); } catch {}
+  }, 150);
+}).observe(document.getElementById('xterm-container'));
   termConnect(null);
 }
 
