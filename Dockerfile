@@ -36,6 +36,7 @@ COPY --from=build /app/node_modules ./node_modules
 
 # Copy application source
 COPY server.js index.html package.json ./
+COPY public/ ./public/
 
 # Repos are stored here — mount a volume to persist them across restarts
 RUN mkdir -p /repos

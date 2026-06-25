@@ -973,17 +973,14 @@ function initTerminal() {
   termConnect(null);
 }
 
-let termIntentionalClose = false;
-
 function termConnect(repo) {
   if (termWs) {
-    termIntentionalClose = true;
+    termWs.onclose = null; // prevent auto-reconnect from firing on an intentional close
     try { termWs.close(); } catch {}
   }
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const cols = term?.cols || 80, rows = term?.rows || 24;
   const url = `${proto}//${location.host}/terminal?${repo ? 'repo='+encodeURIComponent(repo)+'&' : ''}cols=${cols}&rows=${rows}`;
-  termIntentionalClose = false;
   termWs = new WebSocket(url);
   termWs.onmessage = e => {
     const msg = JSON.parse(e.data);
@@ -992,7 +989,7 @@ function termConnect(repo) {
     if (msg.type === 'error')  term.write(`\r\n\x1b[31m[error: ${msg.message}]\x1b[0m\r\n`);
   };
   termWs.onopen  = () => { sendResize(); if (repo) term.write(`\x1b[2m[connected to ${repo}]\x1b[0m\r\n`); };
-  termWs.onclose = () => { if (!termIntentionalClose && state.repo) setTimeout(() => termConnect(state.repo), 3000); };
+  termWs.onclose = () => { if (state.repo) setTimeout(() => termConnect(state.repo), 3000); };
 }
 
 function sendResize() { if (termWs?.readyState === WebSocket.OPEN && term) termWs.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows })); }
