@@ -177,13 +177,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
 
 .mono{font-family:var(--font-mono)}
 .muted{color:var(--fg1)}
+.hidden{display:none !important}
 </style>
 </head>
 <body>
 
 <div id="app">
 
-  <!-- ── header ─────────────────────────────────────────────────────────── -->
   <header id="header">
     <div class="logo">
       <svg width="18" height="18" viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
@@ -204,10 +204,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
     </button>
   </header>
 
-  <!-- ── body ───────────────────────────────────────────────────────────── -->
   <div id="body">
 
-    <!-- sidebar -->
     <nav id="sidebar">
       <div class="sb-section">
         <div class="sb-label">workspace</div>
@@ -250,14 +248,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
       </div>
     </nav>
 
-    <!-- main -->
     <div id="main">
       <div class="tab-row hidden" id="tab-row">
         <div class="tab" id="tab-unstaged" onclick="setChangesTab('unstaged')">Unstaged</div>
         <div class="tab" id="tab-staged" onclick="setChangesTab('staged')">Staged</div>
       </div>
 
-      <!-- welcome -->
       <div class="panel" id="panel-welcome">
         <div class="welcome">
           <svg viewBox="0 0 24 24"><path d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2 2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2c-.2 0-.37 0-.54.07L11.06 6.1a2 2 0 0 0-.56-2.26 2 2 0 0 0-2.76.11L2.6 10.06l.0.53Z"/></svg>
@@ -267,7 +263,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         </div>
       </div>
 
-      <!-- clone -->
       <div class="panel hidden" id="panel-clone">
         <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4 9h1a1 1 0 0 0 0-2H4a8 8 0 0 1 7-7.93V1a1 1 0 0 0 2 0v-.93A8 8 0 0 1 20 7h-1a1 1 0 0 0 0 2h1a8 8 0 0 1-7 7.93z"/></svg> Clone repository</div>
         <div id="clone-alert"></div>
@@ -286,13 +281,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         </div>
       </div>
 
-      <!-- changes -->
       <div class="panel hidden" id="panel-changes">
         <div id="changes-alert"></div>
         <div id="changes-content"><div class="empty">Select a repository first</div></div>
       </div>
 
-      <!-- diff -->
       <div class="panel hidden" id="panel-diff">
         <div class="panel-header">
           <svg viewBox="0 0 24 24"><path d="M8.7 15.9L4.8 12l3.9-3.9c.39-.39.39-1.01 0-1.4-.39-.39-1.01-.39-1.4 0l-4.59 4.59c-.39.39-.39 1.02 0 1.41l4.59 4.6c.39.39 1.01.39 1.4 0 .39-.39.39-1.01 0-1.41zm6.6 0l3.9-3.9-3.9-3.9c-.39-.39-.39-1.01 0-1.4.39-.39 1.01-.39 1.4 0l4.59 4.59c.39.39.39 1.02 0 1.41l-4.59 4.6c-.39.39-1.01.39-1.4 0-.39-.39-.39-1.01 0-1.41z"/></svg>
@@ -305,7 +298,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         <div id="diff-content"><div class="no-diff">Select a file above to view its diff</div></div>
       </div>
 
-      <!-- commit -->
       <div class="panel hidden" id="panel-commit">
         <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5zm-5-9c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/></svg> Commit</div>
         <div id="commit-alert"></div>
@@ -323,13 +315,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         </div>
       </div>
 
-      <!-- history -->
       <div class="panel hidden" id="panel-history">
         <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg> Commit history</div>
         <div id="history-content"><div class="empty">Select a repository first</div></div>
       </div>
 
-      <!-- branches -->
       <div class="panel hidden" id="panel-branches">
         <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M17 4c-1.66 0-3 1.34-3 3 0 1.18.68 2.2 1.67 2.72-.03.12-.04.24-.04.36-.37 1.6-1.77 3.06-3.63 4-1.86-.94-3.26-2.4-3.63-4-.01-.12-.03-.24-.04-.36C9.32 9.2 10 8.18 10 7c0-1.66-1.34-3-3-3S4 5.34 4 7c0 1.18.68 2.2 1.67 2.72.05.44.14.88.28 1.29C6.62 13.23 8.38 15 10.5 16.16V20H8v2h8v-2h-2.5v-3.84C15.62 15 17.38 13.23 18.05 11c.14-.41.23-.85.28-1.29C19.32 9.2 20 8.18 20 7c0-1.66-1.34-3-3-3z"/></svg> Branches</div>
         <div id="branches-content"><div class="empty">Select a repository first</div></div>
@@ -340,7 +330,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         </div>
       </div>
 
-      <!-- push/pull -->
       <div class="panel hidden" id="panel-push">
         <div class="panel-header"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg> Push / Pull</div>
         <div id="push-alert"></div>
@@ -361,12 +350,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
           </button>
         </div>
       </div>
-    </div>
-  </div>
 
-      <!-- files / editor -->
       <div class="panel hidden" id="panel-files">
-        <!-- File tree -->
         <div class="ft-pane">
           <div class="ft-toolbar">
             <span style="font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.08em;flex:1">Explorer</span>
@@ -379,7 +364,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
             <div class="empty" style="padding:16px 10px">Select a repository first</div>
           </div>
         </div>
-        <!-- Editor -->
         <div class="editor-pane">
           <div class="editor-placeholder" id="editor-placeholder">
             <svg width="36" height="36" fill="currentColor" viewBox="0 0 24 24" opacity=".3"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>
@@ -401,6 +385,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--fg0);fon
         </div>
       </div>
 
+    </div>
+  </div>
 
   <div id="terminal-wrap" style="height:280px">
     <div class="term-resizer" id="term-resizer"></div>
