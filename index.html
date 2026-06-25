@@ -973,11 +973,17 @@ function initTerminal() {
   termConnect(null);
 }
 
+let termIntentionalClose = false;
+
 function termConnect(repo) {
-  if (termWs) { try { termWs.close(); } catch {} }
+  if (termWs) {
+    termIntentionalClose = true;
+    try { termWs.close(); } catch {}
+  }
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const cols = term?.cols || 80, rows = term?.rows || 24;
   const url = `${proto}//${location.host}/terminal?${repo ? 'repo='+encodeURIComponent(repo)+'&' : ''}cols=${cols}&rows=${rows}`;
+  termIntentionalClose = false;
   termWs = new WebSocket(url);
   termWs.onmessage = e => {
     const msg = JSON.parse(e.data);
@@ -986,7 +992,7 @@ function termConnect(repo) {
     if (msg.type === 'error')  term.write(`\r\n\x1b[31m[error: ${msg.message}]\x1b[0m\r\n`);
   };
   termWs.onopen  = () => { sendResize(); if (repo) term.write(`\x1b[2m[connected to ${repo}]\x1b[0m\r\n`); };
-  termWs.onclose = () => { setTimeout(() => { if (state.repo) termConnect(state.repo); }, 3000); };
+  termWs.onclose = () => { if (!termIntentionalClose && state.repo) setTimeout(() => termConnect(state.repo), 3000); };
 }
 
 function sendResize() { if (termWs?.readyState === WebSocket.OPEN && term) termWs.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows })); }
@@ -1062,260 +1068,145 @@ function modeFor(filename) {
 }
 
 // ── File icons ────────────────────────────────────────────────────────────────
-// Each returns an SVG string sized to `size` pixels.
+// Icons live in public/icons/*.svg — referenced as <img> tags.
 
-function _ic(size, content) {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="flex-shrink:0" xmlns="http://www.w3.org/2000/svg">${content}</svg>`;
+function _img(src, size) {
+  return `<img src="${src}" width="${size}" height="${size}" style="flex-shrink:0;display:block" draggable="false">`;
 }
 
-// Coloured document shape — the fallback for most file types
-function _doc(size, color) {
-  return _ic(size, `<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="${color}" opacity=".9"/><path d="M13 2v7h7" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>`);
-}
-
-// Docker whale with stacked containers  🐳
-function _dockerIcon(size) {
-  return _ic(size, `
-    <g fill="#2496ed">
-      <rect x="6"  y="2"  width="3.5" height="3" rx="0.5"/>
-      <rect x="2"  y="6"  width="3.5" height="3" rx="0.5"/>
-      <rect x="6"  y="6"  width="3.5" height="3" rx="0.5"/>
-      <rect x="10" y="6"  width="3.5" height="3" rx="0.5"/>
-      <rect x="2"  y="10" width="3.5" height="3" rx="0.5"/>
-      <rect x="6"  y="10" width="3.5" height="3" rx="0.5"/>
-      <rect x="10" y="10" width="3.5" height="3" rx="0.5"/>
-      <rect x="14" y="10" width="3.5" height="3" rx="0.5"/>
-      <path d="M21.5 13.8c-.5-1.5-2.2-1.4-3.2-.8-.3-2.2-2.3-2.6-3.1-2.6H1.8C1 14.3 1.5 19 7 19h9c3.5 0 5.5-2 5.5-4.2 0-.3 0-.7-.1-1z"/>
-    </g>
-    <path d="M17.5 20.5c1.5 2 4.2 1.5 4.7-.2" stroke="#2496ed" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    <circle cx="19.5" cy="13" r="1" fill="white" opacity=".75"/>`);
-}
-
-// React atom (JSX / TSX)
-function _reactIcon(size, color) {
-  return _ic(size, `
-    <circle cx="12" cy="12" r="2" fill="${color}"/>
-    <ellipse cx="12" cy="12" rx="10" ry="3.5" fill="none" stroke="${color}" stroke-width="1.1"/>
-    <ellipse cx="12" cy="12" rx="10" ry="3.5" fill="none" stroke="${color}" stroke-width="1.1" transform="rotate(60 12 12)"/>
-    <ellipse cx="12" cy="12" rx="10" ry="3.5" fill="none" stroke="${color}" stroke-width="1.1" transform="rotate(120 12 12)"/>`);
-}
-
-// Image / picture icon
-function _imgIcon(size) {
-  return _ic(size, `
-    <rect x="2" y="4" width="20" height="16" rx="2" fill="#a78bfa" opacity=".85"/>
-    <circle cx="8" cy="9" r="2" fill="rgba(255,255,255,.7)"/>
-    <path d="M2 17l5-5 3 3 4-5 6 7H2z" fill="rgba(255,255,255,.45)"/>`);
-}
-
-// Markdown — M↓
-function _mdIcon(size) {
-  return _ic(size, `
-    <rect x="1" y="4" width="22" height="16" rx="2" fill="#4a90d9"/>
-    <text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white" font-family="monospace">MD</text>
-    <path d="M17 13v-4l-2 2-2-2v4" stroke="none" fill="none"/>
-  `);
-}
-
-// Git branch icon (for .gitignore, etc.)
-function _gitIcon(size) {
-  return _ic(size, `
-    <circle cx="7"  cy="6"  r="2.5" fill="#f14e32"/>
-    <circle cx="7"  cy="18" r="2.5" fill="#f14e32"/>
-    <circle cx="17" cy="6"  r="2.5" fill="#f14e32"/>
-    <path d="M7 8.5v7" stroke="#f14e32" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M17 8.5c0 4-2 6-10 6" fill="none" stroke="#f14e32" stroke-width="1.8" stroke-linecap="round"/>`);
-}
-
-// npm cube logo
-function _npmIcon(size) {
-  return _ic(size, `
-    <rect x="1" y="7" width="22" height="10" rx="1" fill="#cb3837"/>
-    <rect x="7"  y="10" width="3" height="4" fill="white"/>
-    <rect x="14" y="10" width="3" height="7" fill="white"/>
-    <text x="12" y="15" text-anchor="middle" font-size="7" font-weight="900" fill="white" font-family="monospace">npm</text>`);
-}
-
-// env / config — lock icon
-function _envIcon(size) {
-  return _ic(size, `
-    <rect x="5" y="10" width="14" height="10" rx="2" fill="#ecd53f"/>
-    <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="#ecd53f" stroke-width="1.8" stroke-linecap="round"/>
-    <circle cx="12" cy="15" r="1.5" fill="#5a4000"/>`);
-}
-
-// PDF — red doc with text lines
-function _pdfIcon(size) {
-  return _ic(size, `
-    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="#e74c3c" opacity=".9"/>
-    <path d="M13 2v7h7" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>
-    <text x="12" y="17" text-anchor="middle" font-size="5.5" font-weight="bold" fill="white" font-family="monospace">PDF</text>`);
-}
-
-// Python — two intertwined snakes (blue / yellow), modelled on the real mark
-function _pyIcon(size) {
-  return _ic(size, `
-    <path d="M11.9 1.6c-4.3 0-4 1.9-4 1.9v2h4.1v.6H6.2S3.1 5.7 3.1 10s2.7 4.1 2.7 4.1h1.6v-2s-.1-2.7 2.5-2.7h4s2.5 0 2.5-2.4V4S17 1.6 11.9 1.6z" fill="#3776ab"/>
-    <path d="M12.1 22.3c4.3 0 4-1.9 4-1.9v-2h-4.1v-.6h5.8s3.1.4 3.1-3.9-2.7-4.1-2.7-4.1h-1.6v2s.1 2.7-2.5 2.7h-4s-2.5 0-2.5 2.4V20s-.4 2.3 4.5 2.3z" fill="#ffd43b"/>
-    <circle cx="8.9" cy="3.8" r=".7" fill="#fff"/>
-    <circle cx="15.1" cy="20.1" r=".7" fill="#fff"/>`);
-}
-
-// Rust — gear ring (cogteeth + hub), in rust orange
-function _rustIcon(size) {
-  return _ic(size, `
-    <circle cx="12" cy="12" r="6.6" fill="none" stroke="#ce4a22" stroke-width="1.6"/>
-    <circle cx="12" cy="12" r="2.3" fill="#ce4a22"/>
-    <g fill="#ce4a22">
-      <rect x="11.2" y="2.7" width="1.6" height="2.6" rx="0.5"/>
-      <rect x="11.2" y="18.7" width="1.6" height="2.6" rx="0.5"/>
-      <rect x="2.7" y="11.2" width="2.6" height="1.6" rx="0.5"/>
-      <rect x="18.7" y="11.2" width="2.6" height="1.6" rx="0.5"/>
-      <rect x="5.2" y="5.2" width="1.6" height="2.4" rx="0.5" transform="rotate(45 6 6.4)"/>
-      <rect x="17.2" y="16.4" width="1.6" height="2.4" rx="0.5" transform="rotate(45 18 17.6)"/>
-      <rect x="17.2" y="5.2" width="1.6" height="2.4" rx="0.5" transform="rotate(-45 18 6.4)"/>
-      <rect x="5.2" y="16.4" width="1.6" height="2.4" rx="0.5" transform="rotate(-45 6 17.6)"/>
-    </g>`);
-}
-
-// Go — gopher-blue capsule badge
-function _goIcon(size) {
-  return _ic(size, `
-    <rect x="1" y="6.5" width="22" height="11" rx="3" fill="#00ACD7"/>
-    <text x="12" y="14.7" text-anchor="middle" font-size="7.5" font-weight="800" fill="white" font-family="monospace">GO</text>`);
-}
-
-// Java — coffee cup with steam
-function _javaIcon(size) {
-  return _ic(size, `
-    <path d="M6.3 9.5h11.4v5.2a3.7 3.7 0 0 1-3.7 3.7H10a3.7 3.7 0 0 1-3.7-3.7Z" fill="#ea2d2e"/>
-    <path d="M17.6 10.8c1.8-.2 3.1.6 3.1 2s-1.5 2.2-3.3 2" fill="none" stroke="#ea2d2e" stroke-width="1.3"/>
-    <ellipse cx="12" cy="20.3" rx="6" ry="1.1" fill="none" stroke="#ea2d2e" stroke-width="1"/>
-    <path d="M9.5 4.3c-.6.8-.4 1.4.2 1.9M13 3.7c-.6.8-.4 1.6.2 2.1" fill="none" stroke="#f0a35b" stroke-width="1.1" stroke-linecap="round"/>`);
-}
-
-// Ruby — faceted gem
-function _rubyIcon(size) {
-  return _ic(size, `
-    <path d="M12 2.8 19.4 8 12 21.2 4.6 8Z" fill="#cc342d"/>
-    <path d="M4.6 8h14.8L12 9.7Z" fill="#ffffff" opacity=".22"/>
-    <path d="M12 9.7 19.4 8 12 21.2Z" fill="#000000" opacity=".12"/>`);
-}
-
-// PHP — indigo pill badge
-function _phpIcon(size) {
-  return _ic(size, `
-    <ellipse cx="12" cy="12" rx="11" ry="7.2" fill="#777bb3"/>
-    <text x="12" y="14.7" text-anchor="middle" font-size="6.3" font-weight="800" fill="white" font-family="monospace">PHP</text>`);
-}
-
-// Vue — green chevron mark
-function _vueIcon(size) {
-  return _ic(size, `
-    <path d="M2 4h4.1L12 13.6 17.9 4H22L12 21z" fill="#4fc08d"/>
-    <path d="M7.5 4h3l1.5 2.5L13.5 4h3L12 11.4z" fill="#35495e"/>`);
-}
-
-// C / C++ / C# — circular badge with the language letter(s)
-function _cFamilyIcon(size, label, color) {
-  return _ic(size, `
-    <circle cx="12" cy="12" r="10" fill="${color}"/>
-    <text x="12" y="${label.length > 1 ? 15.3 : 16}" text-anchor="middle" font-size="${label.length > 1 ? 7 : 10}" font-weight="800" fill="white" font-family="monospace">${label}</text>`);
-}
-
-// Folder (closed / open variants, line-icon style filled)
 function dirIcon(size = 16, open = false) {
-  return open
-    ? _ic(size, `<path d="M3.5 7.7c0-.9.7-1.6 1.6-1.6h4.3c.5 0 1 .2 1.3.6l.9 1h6.3c.9 0 1.6.7 1.6 1.6v.4H7c-.8 0-1.5.6-1.6 1.4L4 17.4c-.3-.3-.5-.7-.5-1.2Z" fill="#dca54c" opacity=".95"/><path d="M5.7 17.3 7.1 11a1.7 1.7 0 0 1 1.6-1.3H20l-1.5 6.6a1.7 1.7 0 0 1-1.6 1.3H7.3a1.7 1.7 0 0 1-1.6-2.1Z" fill="#f0bb5c"/>`)
-    : _ic(size, `<path d="M3.5 7.2c0-.9.7-1.7 1.7-1.7h4.1c.5 0 1 .2 1.3.6l1 1.1h6.2c.9 0 1.7.8 1.7 1.7v8.4c0 .9-.8 1.7-1.7 1.7H5.2c-.9 0-1.7-.8-1.7-1.7Z" fill="#e3b341" opacity=".95"/>`);
+  return _img(open ? '/icons/folder_open.svg' : '/icons/folder.svg', size);
 }
 
-// Main dispatch — maps filenames / extensions to icons
+// Map folder names to special-coloured folder icons
+function _folderIcon(name, size, open) {
+  const n = (name || '').toLowerCase();
+  const base = open ? '_open' : '';
+  // Special named folders
+  if (n === 'node_modules' || n === '.npm')           return _img(`/icons/folder_node.svg`, size);
+  if (n === 'src' || n === 'source' || n === 'lib')   return _img(`/icons/folder_src.svg`, size);
+  if (n === 'dist' || n === 'build' || n === 'out' || n === 'output') return _img(`/icons/folder_dist.svg`, size);
+  if (n === 'test' || n === 'tests' || n === '__tests__' || n === 'spec') return _img(`/icons/folder_test.svg`, size);
+  if (n === '.git')                                   return _img(`/icons/folder_git.svg`, size);
+  return open ? _img('/icons/folder_open.svg', size) : _img('/icons/folder.svg', size);
+}
+
 function fileIcon(name, size = 14) {
   const lower = (name || '').toLowerCase();
   const base  = lower.split('/').pop();
   const ext   = base.includes('.') ? base.split('.').pop() : '';
 
-  // ── Special filenames ──
-  if (base === 'dockerfile' || base.startsWith('dockerfile.') ||
-      base === 'docker-compose.yml' || base === 'docker-compose.yaml' ||
-      base === '.dockerignore') return _dockerIcon(size);
+  // ── Special filenames ──────────────────────────────────────────────────────
+  if (base === 'dockerfile' || base.startsWith('dockerfile.'))
+    return _img('/icons/docker.svg', size);
+  if (base === 'docker-compose.yml' || base === 'docker-compose.yaml' || base === '.dockerignore')
+    return _img('/icons/docker.svg', size);
 
   if (base === 'package.json' || base === 'package-lock.json' || base === '.npmrc' || base === '.npmignore')
-    return _npmIcon(size);
+    return _img('/icons/npm.svg', size);
 
   if (base === '.gitignore' || base === '.gitattributes' || base === '.gitmodules' || base === '.gitconfig')
-    return _gitIcon(size);
+    return _img('/icons/ignore.svg', size);
 
-  if (base.startsWith('.env') || base === '.env')
-    return _envIcon(size);
+  if (base.startsWith('.env'))
+    return _img('/icons/env.svg', size);
 
-  // ── By extension ──
-  const EXT_COLOR = {
+  if (base === 'makefile' || base === 'gnumakefile' || ext === 'mk')
+    return _img('/icons/makefile.svg', size);
+
+  if (base === 'license' || base === 'licence' || base === 'license.md' || base === 'license.txt')
+    return _img('/icons/license.svg', size);
+
+  if (base === 'readme' || base === 'readme.md' || base === 'readme.txt')
+    return _img('/icons/readme.svg', size);
+
+  if (base === 'changelog' || base === 'changelog.md' || base === 'changes' || base === 'changes.md')
+    return _img('/icons/changelog.svg', size);
+
+  if (base === 'yarn.lock' || base === 'package-lock.json' || ext === 'lock')
+    return _img('/icons/lock.svg', size);
+
+  // ── By extension ──────────────────────────────────────────────────────────
+  const EXT_MAP = {
     // JavaScript
-    js:   '#f7df1e', mjs:  '#f7df1e', cjs:  '#f7df1e',
+    js: 'js', mjs: 'js', cjs: 'js',
     // TypeScript
-    ts:   '#3178c6',
+    ts: 'ts',
+    // React
+    jsx: 'jsx', tsx: 'tsx',
     // Web
-    html: '#e34c26', htm:  '#e34c26',
-    css:  '#264de4', scss: '#c76494', sass: '#c76494', less: '#2a4f77',
-    // Data
-    json: '#cbcb41', jsonc:'#cbcb41', toml:'#9c4221',
-    yaml: '#cb171e', yml:  '#cb171e',
-    xml:  '#f60a00',
+    html: 'html', htm: 'html',
+    css: 'css',
+    scss: 'scss', sass: 'sass', less: 'less',
+    // Data / config
+    json: 'json', jsonc: 'json',
+    yaml: 'yaml', yml: 'yaml',
+    xml: 'xml',
+    toml: 'toml',
     // Docs
-    md:   '#4a90d9', markdown:'#4a90d9', txt: '#aaaaaa', rst: '#888',
-    // Shell / scripting
-    sh:   '#89e051', bash: '#89e051', zsh: '#89e051', fish:'#89e051',
-    // Systems
-    rs:   '#ce4a22', go:   '#00ADD8', c: '#555599', h: '#555599',
-    cpp:  '#f34b7d', cc:   '#f34b7d', cxx:'#f34b7d',
-    cs:   '#178600', java: '#b07219', kt: '#A97BFF', swift:'#ffac45',
+    md: 'md', markdown: 'md',
+    txt: 'txt',
+    rst: 'rst',
+    // Shell
+    sh: 'sh', bash: 'sh', zsh: 'sh', fish: 'sh',
+    ps1: 'ps1', psm1: 'ps1', psd1: 'ps1',
+    // Systems & compiled
+    rs: 'rs',
+    go: 'go',
+    java: 'java', class: 'java', jar: 'java',
+    kt: 'kt', kts: 'kt',
+    swift: 'swift',
+    c: 'c', h: 'c',
+    cpp: 'cpp', cc: 'cpp', cxx: 'cpp', hpp: 'cpp', hxx: 'cpp',
+    cs: 'cs',
     // Scripting
-    rb:   '#cc342d', php:  '#777bb3', py: '#3572a5', pyw:  '#3572a5',
-    lua:  '#000080', ex:   '#6e4a7e', exs:'#6e4a7e',
-    dart: '#0175c2', r: '#276dc3',
+    py: 'py', pyw: 'py',
+    rb: 'rb', erb: 'rb', rake: 'rb',
+    php: 'php', phtml: 'php',
+    lua: 'lua',
+    r: 'r', rmd: 'r',
+    ex: 'ex', exs: 'ex',
+    dart: 'dart',
     // Web frameworks
-    vue:    '#4FC08D', svelte:'#ff3e00',
-    // SVG / images
-    svg:  '#ffb13b',
-    png:  '#a78bfa', jpg: '#a78bfa', jpeg:'#a78bfa', gif:'#a78bfa',
-    webp: '#a78bfa', ico: '#a78bfa', bmp: '#a78bfa', tiff:'#a78bfa',
+    vue: 'vue',
+    svelte: 'svelte',
+    astro: 'astro',
+    // Infra / IaC
+    tf: 'tf', tfvars: 'tf',
+    // Query
+    graphql: 'graphql', gql: 'graphql',
+    prisma: 'prisma',
+    sql: 'sql', db: 'db', sqlite: 'db',
+    // Markup / SVG
+    svg: 'svg_file',
+    // Images
+    png: 'image', jpg: 'image', jpeg: 'image', gif: 'image',
+    webp: 'image', ico: 'image', bmp: 'image', tiff: 'image', tif: 'image',
+    // Documents
+    pdf: 'pdf',
+    // Archives
+    zip: 'zip', tar: 'zip', gz: 'zip', rar: 'zip', '7z': 'zip', bz2: 'zip',
+    // Fonts
+    ttf: 'font', woff: 'font', woff2: 'font', otf: 'font', eot: 'font',
+    // Config
+    ini: 'config', cfg: 'config', conf: 'config', env: 'env',
     // Misc
-    pdf:  '_pdf', lock:'#6d8086', sql:'#dad8d8', db:'#dad8d8',
-    zip:  '#eca517', tar:'#eca517', gz: '#eca517', rar:'#eca517',
-    ttf:  '#6d8086', woff:'#6d8086', woff2:'#6d8086',
+    lock: 'lock',
   };
 
-  // React flavors get the atom icon
-  if (ext === 'jsx') return _reactIcon(size, '#61dafb');
-  if (ext === 'tsx') return _reactIcon(size, '#3178c6');
+  // Config file patterns by full filename
+  if (base.endsWith('.config.js') || base.endsWith('.config.ts') ||
+      base.endsWith('.config.mjs') || base.endsWith('rc.js') ||
+      base === 'vite.config.js' || base === 'webpack.config.js' ||
+      base === 'rollup.config.js' || base === 'babel.config.js' ||
+      base.startsWith('.eslintrc') || base.startsWith('.prettierrc') ||
+      base.startsWith('.stylelintrc') || base.startsWith('.babelrc'))
+    return _img('/icons/config.svg', size);
 
-  // Real per-language marks
-  if (ext === 'py' || ext === 'pyw') return _pyIcon(size);
-  if (ext === 'rs') return _rustIcon(size);
-  if (ext === 'go') return _goIcon(size);
-  if (ext === 'java' || ext === 'class' || ext === 'jar') return _javaIcon(size);
-  if (ext === 'rb') return _rubyIcon(size);
-  if (ext === 'php') return _phpIcon(size);
-  if (ext === 'vue') return _vueIcon(size);
-  if (ext === 'c' || ext === 'h') return _cFamilyIcon(size, 'C', '#5c6bc0');
-  if (ext === 'cpp' || ext === 'cc' || ext === 'cxx' || ext === 'hpp') return _cFamilyIcon(size, 'C++', '#5c6bc0');
-  if (ext === 'cs') return _cFamilyIcon(size, 'C#', '#33652f');
+  const icon = EXT_MAP[ext];
+  if (icon) return _img(`/icons/${icon}.svg`, size);
 
-  // Images → picture icon
-  if (['png','jpg','jpeg','gif','webp','ico','bmp','tiff','svg'].includes(ext)) return _imgIcon(size);
-
-  // PDF
-  if (ext === 'pdf') return _pdfIcon(size);
-
-  // Markdown
-  if (ext === 'md' || ext === 'markdown') return _mdIcon(size);
-
-  const color = EXT_COLOR[ext];
-  if (color && color !== '_pdf') return _doc(size, color);
-
-  return _doc(size, '#6e7681'); // unknown file — neutral grey
+  return _img('/icons/default.svg', size); // unknown — neutral grey
 }
 
 function chevron() {
@@ -1331,7 +1222,7 @@ function renderTree(nodes, depth = 0) {
       const safeId = 'ftd_' + n.path.replace(/[^a-zA-Z0-9]/g, '_');
       return `
         <div class="ft-item ft-dir" style="padding-left:${indent}px" onclick="toggleFtDir('${safeId}',this)">
-          ${chevron()}<span class="ft-dir-icon">${dirIcon()}</span>
+          ${chevron()}<span class="ft-dir-icon">${_folderIcon(n.name, 16, false)}</span>
           <span class="ft-name">${escHtml(n.name)}</span>
         </div>
         <div id="${safeId}" style="display:none">${renderTree(n.children, depth + 1)}</div>`;
@@ -1352,7 +1243,9 @@ function toggleFtDir(id, el) {
   const ch = el.querySelector('.ft-chevron');
   if (ch) ch.style.transform = open ? '' : 'rotate(90deg)';
   const ic = el.querySelector('.ft-dir-icon');
-  if (ic) ic.innerHTML = dirIcon(16, !open);
+  const isNowOpen = !open;
+  const imgEl = ic.querySelector('img');
+  if (imgEl) imgEl.src = isNowOpen ? '/icons/folder_open.svg' : '/icons/folder.svg';
 }
 
 async function loadFileTree() {
@@ -1432,7 +1325,7 @@ function expandPathInTree(filePath) {
       const ch = row?.querySelector('.ft-chevron');
       if (ch) ch.style.transform = 'rotate(90deg)';
       const ic = row?.querySelector('.ft-dir-icon');
-      if (ic) ic.innerHTML = dirIcon(16, true);
+      const imgEl2 = ic?.querySelector('img'); if (imgEl2) imgEl2.src = '/icons/folder_open.svg';
     }
   }
 }
