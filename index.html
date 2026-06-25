@@ -991,7 +991,7 @@ function termConnect(repo) {
     if (msg.type === 'exit')   term.write(`\r\n\x1b[33m[process exited with code ${msg.exitCode}]\x1b[0m\r\n`);
     if (msg.type === 'error')  term.write(`\r\n\x1b[31m[error: ${msg.message}]\x1b[0m\r\n`);
   };
-  termWs.onopen  = () => { sendResize(); if (repo) term.write(`\x1b[2m[connected to ${repo}]\x1b[0m\r\n`); };
+  termWs.onopen  = () => { sendResize(); };
   termWs.onclose = () => { if (!termIntentionalClose && state.repo) setTimeout(() => termConnect(state.repo), 3000); };
 }
 
@@ -1068,14 +1068,14 @@ function modeFor(filename) {
 }
 
 // ── File icons ────────────────────────────────────────────────────────────────
-// Icons live in public/icons/*.svg — referenced as <img> tags.
+// Icons live in public//icons/*.svg — referenced as <img> tags.
 
 function _img(src, size) {
   return `<img src="${src}" width="${size}" height="${size}" style="flex-shrink:0;display:block" draggable="false">`;
 }
 
 function dirIcon(size = 16, open = false) {
-  return _img(open ? '/icons/folder_open.svg' : '/icons/folder.svg', size);
+  return _img(open ? '//icons/folder_open.svg' : '//icons/folder.svg', size);
 }
 
 // Map folder names to special-coloured folder icons
@@ -1083,12 +1083,12 @@ function _folderIcon(name, size, open) {
   const n = (name || '').toLowerCase();
   const base = open ? '_open' : '';
   // Special named folders
-  if (n === 'node_modules' || n === '.npm')           return _img(`/icons/folder_node.svg`, size);
-  if (n === 'src' || n === 'source' || n === 'lib')   return _img(`/icons/folder_src.svg`, size);
-  if (n === 'dist' || n === 'build' || n === 'out' || n === 'output') return _img(`/icons/folder_dist.svg`, size);
-  if (n === 'test' || n === 'tests' || n === '__tests__' || n === 'spec') return _img(`/icons/folder_test.svg`, size);
-  if (n === '.git')                                   return _img(`/icons/folder_git.svg`, size);
-  return open ? _img('/icons/folder_open.svg', size) : _img('/icons/folder.svg', size);
+  if (n === 'node_modules' || n === '.npm')           return _img(`//icons/folder_node.svg`, size);
+  if (n === 'src' || n === 'source' || n === 'lib')   return _img(`//icons/folder_src.svg`, size);
+  if (n === 'dist' || n === 'build' || n === 'out' || n === 'output') return _img(`//icons/folder_dist.svg`, size);
+  if (n === 'test' || n === 'tests' || n === '__tests__' || n === 'spec') return _img(`//icons/folder_test.svg`, size);
+  if (n === '.git')                                   return _img(`//icons/folder_git.svg`, size);
+  return open ? _img('//icons/folder_open.svg', size) : _img('//icons/folder.svg', size);
 }
 
 function fileIcon(name, size = 14) {
@@ -1098,33 +1098,33 @@ function fileIcon(name, size = 14) {
 
   // ── Special filenames ──────────────────────────────────────────────────────
   if (base === 'dockerfile' || base.startsWith('dockerfile.'))
-    return _img('/icons/docker.svg', size);
+    return _img('//icons/docker.svg', size);
   if (base === 'docker-compose.yml' || base === 'docker-compose.yaml' || base === '.dockerignore')
-    return _img('/icons/docker.svg', size);
+    return _img('//icons/docker.svg', size);
 
   if (base === 'package.json' || base === 'package-lock.json' || base === '.npmrc' || base === '.npmignore')
-    return _img('/icons/npm.svg', size);
+    return _img('//icons/npm.svg', size);
 
   if (base === '.gitignore' || base === '.gitattributes' || base === '.gitmodules' || base === '.gitconfig')
-    return _img('/icons/ignore.svg', size);
+    return _img('//icons/ignore.svg', size);
 
   if (base.startsWith('.env'))
-    return _img('/icons/env.svg', size);
+    return _img('//icons/env.svg', size);
 
   if (base === 'makefile' || base === 'gnumakefile' || ext === 'mk')
-    return _img('/icons/makefile.svg', size);
+    return _img('//icons/makefile.svg', size);
 
   if (base === 'license' || base === 'licence' || base === 'license.md' || base === 'license.txt')
-    return _img('/icons/license.svg', size);
+    return _img('//icons/license.svg', size);
 
   if (base === 'readme' || base === 'readme.md' || base === 'readme.txt')
-    return _img('/icons/readme.svg', size);
+    return _img('//icons/readme.svg', size);
 
   if (base === 'changelog' || base === 'changelog.md' || base === 'changes' || base === 'changes.md')
-    return _img('/icons/changelog.svg', size);
+    return _img('//icons/changelog.svg', size);
 
   if (base === 'yarn.lock' || base === 'package-lock.json' || ext === 'lock')
-    return _img('/icons/lock.svg', size);
+    return _img('//icons/lock.svg', size);
 
   // ── By extension ──────────────────────────────────────────────────────────
   const EXT_MAP = {
@@ -1201,12 +1201,12 @@ function fileIcon(name, size = 14) {
       base === 'rollup.config.js' || base === 'babel.config.js' ||
       base.startsWith('.eslintrc') || base.startsWith('.prettierrc') ||
       base.startsWith('.stylelintrc') || base.startsWith('.babelrc'))
-    return _img('/icons/config.svg', size);
+    return _img('//icons/config.svg', size);
 
   const icon = EXT_MAP[ext];
-  if (icon) return _img(`/icons/${icon}.svg`, size);
+  if (icon) return _img(`//icons/${icon}.svg`, size);
 
-  return _img('/icons/default.svg', size); // unknown — neutral grey
+  return _img('//icons/default.svg', size); // unknown — neutral grey
 }
 
 function chevron() {
@@ -1245,7 +1245,7 @@ function toggleFtDir(id, el) {
   const ic = el.querySelector('.ft-dir-icon');
   const isNowOpen = !open;
   const imgEl = ic.querySelector('img');
-  if (imgEl) imgEl.src = isNowOpen ? '/icons/folder_open.svg' : '/icons/folder.svg';
+  if (imgEl) imgEl.src = isNowOpen ? '//icons/folder_open.svg' : '//icons/folder.svg';
 }
 
 async function loadFileTree() {
@@ -1325,7 +1325,7 @@ function expandPathInTree(filePath) {
       const ch = row?.querySelector('.ft-chevron');
       if (ch) ch.style.transform = 'rotate(90deg)';
       const ic = row?.querySelector('.ft-dir-icon');
-      const imgEl2 = ic?.querySelector('img'); if (imgEl2) imgEl2.src = '/icons/folder_open.svg';
+      const imgEl2 = ic?.querySelector('img'); if (imgEl2) imgEl2.src = '//icons/folder_open.svg';
     }
   }
 }
